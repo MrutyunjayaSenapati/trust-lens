@@ -82,6 +82,3 @@ docker run ... -v "%APPDATA%\gcloud:/gcloud:ro" -e GOOGLE_APPLICATION_CREDENTIAL
 - Responses are cached in SQLite, so re-running a case uses 0 credits.
 - A failing engine is skipped and reported; the investigation still completes with lower confidence.
 - Absence of scam reports is only a weak positive signal. TrustLens is decision support, not proof. Report fraud at cybercrime.gov.in or 1930.
-
-## AI tools used
-Built with Claude (Anthropic) for code generation; Gemini is used at runtime for extraction and writing.

@@ -55,7 +55,7 @@ const en = {
     likely_scam: { label: "Likely scam", stamp: "LIKELY SCAM", blurb: "Strong signs of fraud. Do not pay, click or reply." },
   } as Record<Verdict, { label: string; stamp: string; blurb: string }>,
   helpline: "Report cyber fraud: call 1930 or visit cybercrime.gov.in",
-  footerA: "Evidence from live Google data via SerpApi (Search, News, Maps, Jobs, Shopping, Lens). Explanations written by Gemini. Built with Claude Code.",
+  footerA: "Evidence from live Google data via SerpApi (Search, News, Maps, Jobs, Shopping, Lens). Explanations written by Gemini.",
   footerB: "TrustLens gives guidance, not legal advice. Always confirm through the organisation's official channel.",
   // benchmark
   bmTitle: "How accurate is it?",
@@ -140,7 +140,7 @@ const hi: Dict = {
     likely_scam: { label: "धोखाधड़ी लगती है", stamp: "स्कैम!", blurb: "धोखाधड़ी के मज़बूत संकेत हैं। पैसे न दें, क्लिक न करें, जवाब न दें।" },
   },
   helpline: "साइबर धोखाधड़ी की शिकायत: 1930 पर कॉल करें या cybercrime.gov.in पर जाएँ",
-  footerA: "साक्ष्य लाइव Google डेटा से, SerpApi के ज़रिए (Search, News, Maps, Jobs, Shopping, Lens)। व्याख्या Gemini ने लिखी। Claude Code से बनाया गया।",
+  footerA: "साक्ष्य लाइव Google डेटा से, SerpApi के ज़रिए (Search, News, Maps, Jobs, Shopping, Lens)। व्याख्या Gemini ने लिखी।",
   footerB: "TrustLens मार्गदर्शन देता है, कानूनी सलाह नहीं। हमेशा संस्था के आधिकारिक माध्यम से पुष्टि करें।",
   bmTitle: "यह कितना सटीक है?",
   bmSub: "TrustLens को असली जैसे संदेशों पर चलाया गया, स्कैम और असली दोनों। वही पाइपलाइन, लाइव Google डेटा, हर संदेश के लिए अलग ट्यूनिंग नहीं।",
