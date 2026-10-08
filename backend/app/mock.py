@@ -43,7 +43,8 @@ def serp(engine: str, params: Dict[str, Any]) -> Dict[str, Any]:
         return {"news_results": [{"title": "Police arrest gang running fake internship racket in the name of Zentrix Global", "link": "https://news.example.com/b", "source": {"name": "Example News"}}]}
     if engine == "google_maps":
         if real:
-            return {"local_results": [{"title": "Infosys Limited", "address": "Electronics City, Hosur Road, Bengaluru, Karnataka", "rating": 4.1, "reviews": 9000, "type": "Software company"}]}
+            return {"local_results": [{"title": "Infosys Limited", "address": "Electronics City, Hosur Road, Bengaluru, Karnataka", "rating": 4.1, "reviews": 9000,
+                                       "type": "Software company", "website": "https://www.infosys.com/"}]}
         return {"local_results": []}
     if engine == "google_jobs":
         if real:

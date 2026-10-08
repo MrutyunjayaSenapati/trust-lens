@@ -130,8 +130,11 @@ async def maps(ctx: Ctx) -> Out:
     matching = [p for p in places if name_match(p.get("title", ""), e.company)]
     best = matching[0] if matching else None
     ctx.facts["maps_found"] = bool(best)
-    # Total reviews across the company's own listings: thousands means an established, widely visited business.
-    ctx.facts["maps_reviews"] = sum(int(p.get("reviews") or 0) for p in matching)
+    # Listings with their website, so the reasoner can tell the company's own offices from other businesses that share
+    # the name ("Wahed plumber" is not Wahed the fintech) once the official domain is known.
+    ctx.facts["maps_places"] = [{"title": p.get("title", ""), "reviews": int(p.get("reviews") or 0),
+                                 "website": domain_of(p.get("website") or "")} for p in matching]
+    ctx.facts["maps_reviews"] = max((pl["reviews"] for pl in ctx.facts["maps_places"]), default=0)
     if not best:
         out.evidence.append(_ev("google_maps", 1, "No Google Maps listing for this company",
                                 f"Searched Maps for “{q}” and found no matching business. Real companies with offices are almost always listed.",

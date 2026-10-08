@@ -22,7 +22,14 @@ HIRING_RE = re.compile(r"^(?P<company>.+?)\s+hiring\s+(?P<role>.+?)(?:\s+in\s+(?
 # "Software Engineer - Acme Corp - Bengaluru | Naukri / Indeed / Glassdoor"
 DASH_RE = re.compile(r"^(?P<role>.+?)\s+[-–|]\s+(?P<company>.+?)\s+[-–|]\s+(?P<city>[^|\-]+?)(?:\s*[|\-].*)?$")
 
-JOB_HOSTS = ("linkedin.com", "naukri.com", "indeed.com", "internshala.com", "foundit.in", "glassdoor", "instahyre", "wellfound", "apna.co", "shine.com")
+# Enterprise applicant-tracking systems that host a company's own careers pages (sales-led, no self-serve free
+# accounts, unlike Workable or Zoho Recruit trials). The account name is in the URL: a path segment
+# (jobs.lever.co/wahed.com/...) or a subdomain (acme.wd3.myworkdayjobs.com, acme.keka.com).
+ATS_PATH_HOSTS = ("jobs.lever.co", "boards.greenhouse.io", "job-boards.greenhouse.io", "jobs.ashbyhq.com",
+                  "jobs.smartrecruiters.com")
+ATS_SUBDOMAIN_HOSTS = ("myworkdayjobs.com", "keka.com", "darwinbox.in")
+JOB_HOSTS = ("linkedin.com", "naukri.com", "indeed.com", "internshala.com", "foundit.in", "glassdoor", "instahyre", "wellfound",
+             "apna.co", "shine.com") + ATS_PATH_HOSTS + ATS_SUBDOMAIN_HOSTS
 SHOP_HOSTS = ("amazon.", "flipkart.com", "myntra.com", "meesho.com", "snapdeal.com", "ajio.com", "olx.in", "tatacliq.com")
 EXPERIENCE_RE = re.compile(r"\b\d+\s*(?:-|to)\s*\d+\s*(?:yrs?|years?)\b|\b\d+\+?\s*(?:yrs?|years?)\b|\bfresher\b", re.I)
 # /jobs/view/full-stack-engineer-at-accenture-in-india-4474509677
@@ -43,6 +50,8 @@ class Resolved:
     link: str = ""
     url_words: str = ""  # role/company words found in the URL itself, for postings Google has not indexed yet
     on_job_site: bool = False
+    ats_host: str = ""  # e.g. jobs.lever.co
+    ats_account: str = ""  # the company's account on it, e.g. wahed.com
 
     @property
     def found(self) -> bool:
@@ -78,6 +87,21 @@ def _words(slug: str) -> str:
     return re.sub(r"\s+", " ", unquote(slug).replace("-", " ")).strip()
 
 
+def ats_account(url: str) -> dict:
+    """{'ats_host', 'ats_account'} when the link is a company's page on a recruiting system."""
+    p = urlparse(url if "//" in url else "//" + url)
+    host = (p.hostname or "").lower()
+    for h in ATS_PATH_HOSTS:
+        if host == h:
+            seg = next((s for s in p.path.split("/") if s), "")
+            return {"ats_host": h, "ats_account": unquote(seg).lower()} if seg else {}
+    for h in ATS_SUBDOMAIN_HOSTS:
+        if host.endswith("." + h):
+            sub = host[: -len(h) - 1].split(".")[0]  # acme.wd3.myworkdayjobs.com -> acme
+            return {"ats_host": h, "ats_account": sub} if sub not in ("www", "careers", "jobs") else {}
+    return {}
+
+
 def url_hints(url: str) -> dict:
     """Role/company words that job sites put in the URL itself. Free: no request is made."""
     m = LINKEDIN_SLUG_RE.search(url)
@@ -96,7 +120,7 @@ async def resolve(url: str, serp: SerpClient) -> Resolved:
     out = Resolved(url=full, on_job_site=any(h in host for h in JOB_HOSTS))
     queries = []
     job_id = LINKEDIN_JOB_RE.search(full)
-    for k, v in url_hints(full).items():
+    for k, v in {**url_hints(full), **ats_account(full)}.items():
         setattr(out, k, v)
     if out.on_job_site:
         out.kind = "job_offer"

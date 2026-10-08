@@ -1,8 +1,9 @@
 """Cross-source reasoning: judgments that only make sense once every engine has answered."""
+import re
 from typing import Any, Dict, List
 
 from .models import Contradiction, Entities, Evidence
-from .util import FREE_EMAIL, email_domain, is_alt_domain
+from .util import FREE_EMAIL, domain_label, email_domain, is_alt_domain
 
 # Total Google Maps reviews across a company's own listings above which it counts as an established business.
 # Fake recruiters' "companies" have none or a handful; Infosys, Swiggy, Zerodha have thousands.
@@ -20,9 +21,45 @@ def alt_domain_ok(ent: Entities, facts: Dict[str, Any]) -> bool:
             and not facts.get("sender_domain_reports"))
 
 
+def _check_maps_identity(facts: Dict[str, Any], evidence: List[Evidence]) -> None:
+    """Keep only Maps listings that are this company. With an official domain known, a listing counts when its website
+    is on that domain; reviews are summed over those (a company has many offices). If listings under the name all point
+    elsewhere or nowhere, they are other businesses that share the name, and say nothing about the company."""
+    off = facts.get("official_domain") or ""
+    places = facts.get("maps_places") or []
+    if not (off and places):
+        return
+    lab = domain_label(off)
+    own = [p for p in places if p["website"] and (is_alt_domain(p["website"], off) or domain_label(p["website"]) in
+                                                   (f"get{lab}", f"try{lab}", f"use{lab}"))]  # getpostman.com
+    if own:
+        facts["maps_reviews"] = sum(p["reviews"] for p in own)
+        return
+    facts["maps_found"], facts["maps_reviews"] = False, 0
+    for ev in evidence:
+        if ev.id == "google_maps-1" and ev.weight > 0:
+            ev.weight, ev.signal = 0, "neutral"
+            ev.title = f"Maps listings under this name look like other businesses ({ev.title.split(': ', 1)[-1]})"
+            ev.detail += f" None of them links to {off}, so they are not counted as the company's office."
+
+
+def ats_owned(facts: Dict[str, Any]) -> bool:
+    """The posting is on a recruiting system (Lever, Greenhouse...) under an account named after the official domain."""
+    acct, off = facts.get("ats_account") or "", facts.get("official_domain") or ""
+    return bool(acct and off) and re.sub(r"[^a-z0-9]", "", acct.lower()) in (
+        re.sub(r"[^a-z0-9]", "", off.lower()), domain_label(off))
+
+
 def reconcile(ent: Entities, facts: Dict[str, Any], evidence: List[Evidence]) -> List[Evidence]:
     """Re-weigh single-engine evidence in the light of the others. Every change is written into the evidence detail,
     so the score ledger still explains each point."""
+    _check_maps_identity(facts, evidence)
+    if ats_owned(facts):
+        evidence.append(Evidence(id="x-ats", engine="google", title=f"Posted on {facts['official_domain']}'s own hiring system",
+                                 detail=f"The link is on {facts['ats_host']}, a paid recruiting platform, under the account "
+                                        f"“{facts['ats_account']}”, which matches the company's official site. Scammers rarely "
+                                        "operate these accounts. Apply only through this page.",
+                                 signal="positive", weight=12))
     if established(facts):
         n = facts.get("maps_reviews")
         for ev in evidence:
@@ -40,7 +77,7 @@ def reconcile(ent: Entities, facts: Dict[str, Any], evidence: List[Evidence]) ->
     # indexed under that company while Google Jobs independently lists the role there. Otherwise anyone could borrow
     # "Amazon" and score well.
     listing_traced = bool(facts.get("job_site_listing")) and facts.get("jobs_found") is True
-    traced = facts.get("email_matches_official") or alt_domain_ok(ent, facts) or listing_traced
+    traced = facts.get("email_matches_official") or alt_domain_ok(ent, facts) or listing_traced or ats_owned(facts)
     if listing_traced:
         evidence.append(Evidence(id="x-listing", engine="google", title="Posting traces back to the company",
                                  detail=f"Google has indexed this posting on {facts['job_site_listing']} under this company, and Google Jobs "

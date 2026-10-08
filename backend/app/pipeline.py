@@ -112,6 +112,8 @@ async def run(req: InvestigateRequest) -> AsyncIterator[Dict[str, Any]]:
     ctx = C.Ctx(text=text, ent=ent, serp=serp, image_url=req.image_url)
     if resolved and resolved.found and resolved.on_job_site:
         ctx.facts["job_site_listing"] = domain_of(resolved.url)  # Google has indexed this posting on a job site
+    if resolved and resolved.ats_account:
+        ctx.facts["ats_host"], ctx.facts["ats_account"] = resolved.ats_host, resolved.ats_account
     evidence: List[Evidence] = []
     contradictions: List[Contradiction] = []
 

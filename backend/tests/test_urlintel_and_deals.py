@@ -3,7 +3,7 @@ import asyncio
 from app import gemini
 from app.config import settings
 from app.extraction import apply_resolved, heuristic_entities
-from app.urlintel import Resolved, _parse_title, find_url, is_link_only, url_hints
+from app.urlintel import Resolved, _parse_title, ats_account, find_url, is_link_only, url_hints
 
 
 def test_link_only_detection():
@@ -37,6 +37,27 @@ def test_url_hints_from_job_links():
     h = url_hints("https://www.naukri.com/job-listings-software-engineer-acme-technologies-pvt-ltd-bengaluru-3-to-5-years-081024012345")
     assert h["url_words"] == "software engineer acme technologies pvt ltd bengaluru"
     assert url_hints("https://www.linkedin.com/jobs/view/4474509677/") == {}  # bare link: needs the redirect
+
+
+def test_ats_account_from_link():
+    assert ats_account("https://jobs.lever.co/wahed.com/479cd76f?lever-source=Indeed") == {"ats_host": "jobs.lever.co", "ats_account": "wahed.com"}
+    assert ats_account("https://acme.wd3.myworkdayjobs.com/en-US/careers/job/123") == {"ats_host": "myworkdayjobs.com", "ats_account": "acme"}
+    assert ats_account("https://apply.workable.com/infosys/j/123") == {}  # free trials: anyone can name an account
+    assert ats_account("https://www.naukri.com/job-listings-x-123456789") == {}
+
+
+def test_maps_listing_of_another_business_is_not_the_company():
+    from app.models import Evidence
+    from app.reasoner import ats_owned, reconcile
+    facts = {"official_domain": "wahed.com", "maps_found": True, "maps_reviews": 18,
+             "maps_places": [{"title": "Wahed plumber", "reviews": 18, "website": ""}],
+             "ats_host": "jobs.lever.co", "ats_account": "wahed.com"}
+    ev = [Evidence(id="google_maps-1", engine="google_maps", title="Listed on Google Maps: Wahed plumber", detail="d", weight=10)]
+    ent = heuristic_entities("React Native Engineer at Wahed")
+    ent.kind = "job_offer"
+    out = reconcile(ent, facts, ev)
+    assert facts["maps_found"] is False and ev[0].weight == 0
+    assert ats_owned(facts) and any(e.id == "x-ats" and e.weight > 0 for e in out)
 
 
 def test_apply_resolved_fills_gaps_only():
