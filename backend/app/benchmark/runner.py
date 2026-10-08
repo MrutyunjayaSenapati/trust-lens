@@ -8,12 +8,18 @@ import json
 import time
 from pathlib import Path
 
-from ..models import InvestigateRequest
+from ..models import Evidence, InvestigateRequest
 from ..pipeline import run
+from ..reasoner import score, verdict
 from .cases import CASES
 
 OUT = Path(__file__).with_name("results.json")
 FLAGGED = {"suspicious", "likely_scam"}
+
+
+def _correct(v: str, expected: str) -> bool:
+    flagged = v in FLAGGED
+    return flagged if expected == "scam" else not flagged
 
 
 async def one(case: dict) -> dict:
@@ -23,11 +29,15 @@ async def one(case: dict) -> dict:
             res = ev["result"]
     if not res:
         return {**{k: case[k] for k in ("id", "label", "expected")}, "error": True}
-    flagged = res["verdict"] in FLAGGED
-    correct = flagged if case["expected"] == "scam" else not flagged
+    # Ablation: the same case scored with the offline text rules only, i.e. what TrustLens would say without SerpApi.
+    text_only = [Evidence(**e) for e in res["evidence"] if e["engine"] == "text-analysis"]
+    t_score = score(text_only, [])
+    t_verdict = verdict(t_score)
     return {"id": case["id"], "label": case["label"], "expected": case["expected"], "score": res["score"],
             "verdict": res["verdict"], "confidence": res["confidence"], "engines": res["engines_used"],
-            "contradictions": [c["title"] for c in res["contradictions"]], "correct": correct}
+            "contradictions": [c["title"] for c in res["contradictions"]], "correct": _correct(res["verdict"], case["expected"]),
+            "text_score": t_score, "text_verdict": t_verdict, "text_correct": _correct(t_verdict, case["expected"]),
+            "live_calls": res["live_calls"]}
 
 
 async def main() -> None:
@@ -35,7 +45,8 @@ async def main() -> None:
     for c in CASES:
         rows.append(await one(c))
         r = rows[-1]
-        print(r.get("id"), r.get("verdict"), r.get("score"), r.get("correct"), flush=True)
+        print(r.get("id"), r.get("verdict"), r.get("score"), r.get("correct"), "| text only:", r.get("text_verdict"),
+              r.get("text_correct"), "| live calls:", r.get("live_calls"), flush=True)
     done = [r for r in rows if "correct" in r]
     scams = [r for r in done if r["expected"] == "scam"]
     good = [r for r in done if r["expected"] == "genuine"]
@@ -44,6 +55,9 @@ async def main() -> None:
         "total": len(done), "correct": sum(r["correct"] for r in done),
         "scams_caught": sum(r["correct"] for r in scams), "scams_total": len(scams),
         "genuine_cleared": sum(r["correct"] for r in good), "genuine_total": len(good),
+        "text_correct": sum(r["text_correct"] for r in done),
+        "text_scams_caught": sum(r["text_correct"] for r in scams),
+        "text_genuine_cleared": sum(r["text_correct"] for r in good),
     }
     OUT.write_text(json.dumps({"summary": summary, "rows": rows}, ensure_ascii=False, indent=2), encoding="utf-8")
     print(summary)

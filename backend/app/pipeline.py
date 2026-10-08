@@ -23,6 +23,11 @@ def _planned(ctx: C.Ctx) -> List[Any]:
         plan += [C.scam_reports, C.news, C.maps, C.official_presence]
     if e.kind == "job_offer" and e.company:
         plan.append(C.jobs)
+    ed = C.email_domain(e.contact_email)
+    if ed and ed not in C.FREE_EMAIL:  # free webmail is judged without a search
+        plan.append(C.sender_domain)
+    if C.digits10(e.phone):
+        plan.append(C.phone_reports)
     if e.kind == "deal" and e.product:
         plan.append(C.shopping)
     if ctx.image_url:
@@ -98,7 +103,8 @@ async def run(req: InvestigateRequest) -> AsyncIterator[Dict[str, Any]]:
         yield {"type": "evidence", "item": f.model_dump()}
 
     plan = _planned(ctx)
-    engine_of = {"scam_reports": "google", "official_presence": "google", "news": "google_news", "maps": "google_maps",
+    engine_of = {"scam_reports": "google", "official_presence": "google", "sender_domain": "google", "phone_reports": "google",
+                 "news": "google_news", "maps": "google_maps",
                  "jobs": "google_jobs", "shopping": "google_shopping", "lens": "google_lens"}
     keys = sorted({engine_of[p.__name__] for p in plan})
     names = [ENGINE_LABEL[k] for k in keys]

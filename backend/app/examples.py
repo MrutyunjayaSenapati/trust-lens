@@ -15,6 +15,13 @@ EXAMPLES = [
                  "Contact: hr.recruitment@infosys-careers.co.in"),
     },
     {
+        "id": "no-fee-impersonation",
+        "label": "No fee asked, still fake",
+        "text": ("Dear Candidate, congratulations on clearing the screening for Systems Engineer at Infosys Limited, Mysuru. "
+                 "Your onboarding documentation is being processed. Please reply with scanned copies of your Aadhaar, PAN and "
+                 "bank passbook so we can issue your offer letter. Regards, Talent Acquisition, onboarding@infosys-hrdesk.in"),
+    },
+    {
         "id": "fake-discount",
         "label": "Too-good-to-be-true deal",
         "text": ("MEGA SALE! iPhone 15 128GB only ₹9,999 (MRP ₹1,29,900). Limited stock, only 3 left! "

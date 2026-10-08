@@ -2,6 +2,7 @@
 from typing import Any, Dict
 
 REAL = ("infosys", "tcs", "tata consultancy", "wipro")
+REAL_DOMAINS = ("infosys.com", "tcs.com", "wipro.com")
 
 
 def _is_real(q: str) -> bool:
@@ -12,6 +13,14 @@ def serp(engine: str, params: Dict[str, Any]) -> Dict[str, Any]:
     q = params.get("q", "")
     real = _is_real(q)
     if engine == "google":
+        if q.startswith('"') and q.endswith('"') and " " not in q:  # sender-domain lookup: only real domains are indexed
+            d = q.strip('"').lower()
+            if d in REAL_DOMAINS:
+                return {"organic_results": [{"title": f"Contact | {d}", "link": f"https://www.{d}/contact", "snippet": f"Write to us at careers@{d}."}]}
+            return {"organic_results": []}
+        if q.startswith('"9123456780"'):  # phone lookup: this number has complaints
+            return {"organic_results": [{"title": "9123456780 fraud - fake iPhone sale on WhatsApp", "link": "https://www.reddit.com/r/india/x",
+                                         "snippet": "Paid advance to +91 91234 56780, never delivered. Scam."}]}
         if "scam" in q.lower() or "fraud" in q.lower():
             if real:
                 return {"organic_results": [{

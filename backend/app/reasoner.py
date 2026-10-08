@@ -13,21 +13,25 @@ def cross_check(ent: Entities, facts: Dict[str, Any], evidence: List[Evidence]) 
     off = facts.get("official_domain") or ""
     off_mismatch = bool(ed) and (ed in FREE_EMAIL or (off and not (ed == off or ed.endswith("." + off))))
 
-    # Real company, but this specific offer does not trace back to it.
-    if ent.kind == "job_offer" and company_real and facts.get("jobs_found") is False and off_mismatch:
+    # Real company, but this specific offer does not trace back to it. Scammers often copy a genuine listing, so a
+    # sender domain the web has never seen is enough even when the role itself is listed.
+    untraceable = facts.get("jobs_found") is False or facts.get("sender_domain_unknown")
+    if ent.kind == "job_offer" and company_real and untraceable and off_mismatch:
+        why = ("the recruiter writes from a domain Google has never seen" if facts.get("sender_domain_unknown")
+               else "the role is not in its public listings and the recruiter writes from an unrelated email domain")
         out.append(Contradiction(
             id="x-impersonation",
             title="Real company, but this offer does not trace back to it",
-            detail="The company exists (Maps + official site), yet the role is not in its public listings and the recruiter writes from an unrelated email domain. This pattern matches impersonation of a genuine brand.",
-            evidence_ids=[i for i in ("google_maps-1", "google_jobs-1", "google-11") if i in ids], weight=-20))
+            detail=f"The company exists (Maps + official site), yet {why}. This pattern matches impersonation of a genuine brand.",
+            evidence_ids=[i for i in ("google_maps-1", "google_jobs-1", "google-11", "google-20") if i in ids], weight=-20))
 
-    # Nothing verifiable at all.
+    # Nothing verifiable at all. Each absence is already scored by its own engine, so this only explains the pattern.
     if ent.company and facts.get("maps_found") is False and not facts.get("official_domain") and facts.get("jobs_found") in (False, None):
         out.append(Contradiction(
             id="x-ghost",
             title="Company leaves no verifiable footprint",
             detail="No Maps listing, no official website and no public listings were found for this name across three independent engines.",
-            evidence_ids=[i for i in ("google_maps-1", "google-10", "google_jobs-1") if i in ids], weight=-15))
+            evidence_ids=[i for i in ("google_maps-1", "google-10", "google_jobs-1") if i in ids], weight=0))
 
     # Complaints while the brand looks strong -> consistent with impersonation, not necessarily the brand's fault.
     if facts.get("impersonation_advisory") and company_real:

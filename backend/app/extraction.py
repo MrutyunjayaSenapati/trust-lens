@@ -29,7 +29,8 @@ FEE_RE = re.compile(r"(registration|security|training|processing|refundable|kit|
 CHAT_ONLY_RE = re.compile(r"(whats\s?app|telegram)\s*(only|us|number|me|:|\+)|contact.*(whatsapp|telegram)|\bdm\b", re.I)
 URGENCY_RE = re.compile(r"(limited\s+(seats|slots|vacanc)|hurry|last\s+date\s+today|within\s+\d+\s*(hours|hrs|mins)|immediate(ly)?\s+(joining|reply)|offer\s+expires|only\s+\d+\s+(seats|slots|left))", re.I)
 NO_INTERVIEW_RE = re.compile(r"(without|no)\s+(any\s+)?(interview|exam|test|experience)|direct\s+(selection|joining)|selected\s+(directly|already)|100\s*%\s*(guarantee|placement|selection)", re.I)
-UNREAL_PAY_RE = re.compile(r"(earn|salary|income)[^.\n]{0,25}(₹|rs\.?|inr)\s*[\d,]{5,}\s*(/|per|a)\s*(day|week)|(₹|rs\.?)\s*\d{2,3},?\d{3}\s*(per|/)\s*week", re.I)
+UNREAL_PAY_RE = re.compile(r"(earn|salary|income)[^.\n]{0,25}(₹|rs\.?|inr)\s*[\d,]{5,}\s*(/|per|a)\s*(day|week)|(₹|rs\.?)\s*\d{2,3},?\d{3}\s*(per|/)\s*week"
+                           r"|(earn|make|income)[^.\n]{0,15}(₹|rs\.?|inr)\s*[\d,]{4,}[^.\n]{0,20}\b(daily|per\s+day|a\s+day)\b", re.I)
 EMAIL_RE = re.compile(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+")
 PHONE_RE = re.compile(r"(?:\+91[\s-]?)?[6-9]\d{9}")
 PRICE_RE = re.compile(r"(?:₹|rs\.?|inr)\s*([\d,]{3,})", re.I)

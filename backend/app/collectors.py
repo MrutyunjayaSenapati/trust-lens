@@ -207,6 +207,68 @@ async def official_presence(ctx: Ctx) -> Out:
     return out
 
 
+# --- Google Search: has the web ever seen the sender's email domain? ---------------------------------------
+async def sender_domain(ctx: Ctx) -> Out:
+    out = Out("google_domain")
+    out.engine = "google"
+    ed = email_domain(ctx.ent.contact_email)
+    if not ed or ed in FREE_EMAIL:
+        return out
+    data = await ctx.serp.search("google", q=f'"{ed}"', gl="in", hl="en", num=10)
+    res = data.get("organic_results", [])
+    out.had_data = True
+    ctx.facts["sender_domain_results"] = len(res)
+    reports = [(r.get("title", ""), r.get("link", "")) for r in res
+               if SCAM_RE.search(f"{r.get('title', '')} {r.get('snippet', '')}")]
+    n = 20
+    if not res:
+        ctx.facts["sender_domain_unknown"] = True
+        out.evidence.append(_ev("google", n, f"Google has never seen {ed}",
+                                f"A search for the sender's domain “{ed}” returns nothing. Real employers' email domains are all over the web; "
+                                "a domain with zero footprint is typical of one registered just for a scam.", "negative", -15))
+    elif reports:
+        out.evidence.append(_ev("google", n, f"Sender domain {ed} appears in scam reports",
+                                "Pages mentioning this exact email domain use scam/fraud wording.", "negative", -15, reports))
+    else:
+        out.evidence.append(_ev("google", n, f"Sender domain {ed} is known to Google",
+                                f"{len(res)} pages mention this domain. This only shows it exists, not who owns it.", "neutral", 0,
+                                [(r.get("title", ""), r.get("link", "")) for r in res[:2]]))
+    return out
+
+
+# --- Google Search: is the phone number reported? -----------------------------------------------------------
+def digits10(phone: Optional[str]) -> str:
+    d = re.sub(r"\D", "", phone or "")
+    return d[-10:] if len(d) >= 10 else ""
+
+
+async def phone_reports(ctx: Ctx) -> Out:
+    out = Out("google_phone")
+    out.engine = "google"
+    num = digits10(ctx.ent.phone)
+    if not num:
+        return out
+    data = await ctx.serp.search("google", q=f'"{num}" scam OR fraud OR fake OR cheated', gl="in", hl="en", num=10)
+    res = data.get("organic_results", [])
+    out.had_data = True
+    hits = []
+    for r in res:
+        blob = f"{r.get('title', '')} {r.get('snippet', '')}"
+        # Google ignores spacing inside numbers, so compare digits only to be sure the page names this number
+        if num in re.sub(r"\D", "", blob) and SCAM_RE.search(blob):
+            hits.append((r.get("title", ""), r.get("link", "")))
+    ctx.facts["phone_reports"] = len(hits)
+    n = 30
+    if hits:
+        out.evidence.append(_ev("google", n, f"Phone number reported in {len(hits)} scam complaint(s)",
+                                f"Pages name {ctx.ent.phone} together with fraud/complaint wording.", "negative",
+                                -20 if len(hits) > 1 else -12, hits))
+    else:
+        out.evidence.append(_ev("google", n, "No complaints found for this phone number",
+                                "Weak positive: scammers rotate numbers, so a clean number proves little.", "neutral", 0))
+    return out
+
+
 # --- Google Shopping: is the deal real? ---------------------------------------------------------------------
 async def shopping(ctx: Ctx) -> Out:
     out = Out("google_shopping")
@@ -255,4 +317,4 @@ async def lens(ctx: Ctx) -> Out:
     return out
 
 
-ALL = [scam_reports, news, maps, jobs, official_presence, shopping, lens]
+ALL = [scam_reports, news, maps, jobs, official_presence, sender_domain, phone_reports, shopping, lens]
