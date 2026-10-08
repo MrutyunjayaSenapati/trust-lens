@@ -3,7 +3,7 @@ import asyncio
 from app import gemini
 from app.config import settings
 from app.extraction import apply_resolved, heuristic_entities
-from app.urlintel import Resolved, _parse_title, ats_account, find_url, is_link_only, url_hints
+from app.urlintel import Resolved, _parse_title, ats_account, canonical_url, find_url, is_link_only, url_hints
 
 
 def test_link_only_detection():
@@ -37,6 +37,14 @@ def test_url_hints_from_job_links():
     h = url_hints("https://www.naukri.com/job-listings-software-engineer-acme-technologies-pvt-ltd-bengaluru-3-to-5-years-081024012345")
     assert h["url_words"] == "software engineer acme technologies pvt ltd bengaluru"
     assert url_hints("https://www.linkedin.com/jobs/view/4474509677/") == {}  # bare link: needs the redirect
+
+
+def test_tracking_parameters_are_dropped():
+    assert canonical_url("https://in.indeed.com/viewjob?jk=ee23c5df281753ad&from=mobRdr&tk=1k4d&xkcb=SoA") == \
+        "https://in.indeed.com/viewjob?jk=ee23c5df281753ad"
+    assert canonical_url("https://jobs.lever.co/wahed.com/479cd76f?lever-source=Indeed") == "https://jobs.lever.co/wahed.com/479cd76f"
+    assert canonical_url("https://www.linkedin.com/jobs/view/4474509677/?trk=public_jobs&refId=x") == \
+        "https://www.linkedin.com/jobs/view/4474509677/"
 
 
 def test_ats_account_from_link():

@@ -83,6 +83,17 @@ def _parse_title(title: str, host: str) -> dict:
     return {}
 
 
+# Query parameters that identify the posting; everything else (tracking, referrer, session) is dropped before
+# searching, because a click-specific URL can never match what Google indexed.
+KEEP_PARAMS = {"jk", "id", "jobid", "job_id", "gh_jid", "currentjobid"}
+
+
+def canonical_url(url: str) -> str:
+    p = urlparse(url if "//" in url else "//" + url)
+    keep = [kv for kv in p.query.split("&") if kv and kv.split("=", 1)[0].lower() in KEEP_PARAMS]
+    return p._replace(query="&".join(keep), fragment="").geturl()
+
+
 def _words(slug: str) -> str:
     return re.sub(r"\s+", " ", unquote(slug).replace("-", " ")).strip()
 
@@ -115,7 +126,7 @@ def url_hints(url: str) -> dict:
 
 
 async def resolve(url: str, serp: SerpClient) -> Resolved:
-    full = url if url.lower().startswith("http") else "https://" + url
+    full = canonical_url(url if url.lower().startswith("http") else "https://" + url)
     host = domain_of(full)
     out = Resolved(url=full, on_job_site=any(h in host for h in JOB_HOSTS))
     queries = []
