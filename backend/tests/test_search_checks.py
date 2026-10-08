@@ -26,6 +26,13 @@ def example(id_):
     return next(e["text"] for e in EXAMPLES if e["id"] == id_)
 
 
+def test_phone_not_taken_from_a_posting_id():
+    from app.extraction import PHONE_RE
+    assert not PHONE_RE.search("job-listings-fullstack-developer-bengaluru-2-to-3-years-061026013614")
+    assert PHONE_RE.search("WhatsApp +91 9123456780 now").group(0).endswith("9123456780")
+    assert PHONE_RE.search("call 9876501234.")
+
+
 def test_digits10():
     assert digits10("+91 91234 56780") == "9123456780"
     assert digits10("12345") == ""

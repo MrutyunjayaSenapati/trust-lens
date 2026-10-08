@@ -32,7 +32,7 @@ NO_INTERVIEW_RE = re.compile(r"(without|no)\s+(any\s+)?(interview|exam|test|expe
 UNREAL_PAY_RE = re.compile(r"(earn|salary|income)[^.\n]{0,25}(₹|rs\.?|inr)\s*[\d,]{5,}\s*(/|per|a)\s*(day|week)|(₹|rs\.?)\s*\d{2,3},?\d{3}\s*(per|/)\s*week"
                            r"|(earn|make|income)[^.\n]{0,15}(₹|rs\.?|inr)\s*[\d,]{4,}[^.\n]{0,20}\b(daily|per\s+day|a\s+day)\b", re.I)
 EMAIL_RE = re.compile(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+")
-PHONE_RE = re.compile(r"(?:\+91[\s-]?)?[6-9]\d{9}")
+PHONE_RE = re.compile(r"(?<!\d)(?:\+91[\s-]?)?[6-9]\d{9}(?!\d)")  # not inside a longer number such as a posting id
 PRICE_RE = re.compile(r"(?:₹|rs\.?|inr)\s*([\d,]{3,})", re.I)
 DEAL_RE = re.compile(r"\b(sale|discount|mrp|off|offer|deal|limited stock|stock|delivery|cod|cash on delivery|only)\b", re.I)
 # the words right before "only ₹9,999" / "at ₹9,999" / "@ ₹9,999" are usually the product name
