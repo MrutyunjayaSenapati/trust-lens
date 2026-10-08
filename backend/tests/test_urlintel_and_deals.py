@@ -3,7 +3,7 @@ import asyncio
 from app import gemini
 from app.config import settings
 from app.extraction import apply_resolved, heuristic_entities
-from app.urlintel import Resolved, _parse_title, ats_account, canonical_url, find_url, is_link_only, url_hints
+from app.urlintel import Resolved, _parse_title, ats_account, canonical_url, find_url, is_link_only, posting_key, url_hints
 
 
 def test_link_only_detection():
@@ -37,6 +37,14 @@ def test_url_hints_from_job_links():
     h = url_hints("https://www.naukri.com/job-listings-software-engineer-acme-technologies-pvt-ltd-bengaluru-3-to-5-years-081024012345")
     assert h["url_words"] == "software engineer acme technologies pvt ltd bengaluru"
     assert url_hints("https://www.linkedin.com/jobs/view/4474509677/") == {}  # bare link: needs the redirect
+
+
+def test_posting_key_identifies_the_page():
+    assert posting_key("https://www.naukri.com/job-listings-fullstack-developer-ramxora-private-limited-bengaluru-2-to-3-years-061026013614") == "061026013614"
+    assert posting_key("https://www.linkedin.com/jobs/view/4474509677/") == "4474509677"
+    assert posting_key("https://in.indeed.com/viewjob?jk=ee23c5df281753ad") == "ee23c5df281753ad"
+    assert posting_key("https://jobs.lever.co/wahed.com/479cd76f-d0b5-47e5-86f0-7f8f18605bf1") == "479cd76f-d0b5-47e5-86f0-7f8f18605bf1"
+    assert posting_key("https://shop.example.in/") == ""
 
 
 def test_tracking_parameters_are_dropped():

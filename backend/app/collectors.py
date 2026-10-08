@@ -6,8 +6,8 @@ from typing import Any, Dict, List, Optional
 
 from .models import Contradiction, Entities, Evidence, Source
 from .serp import SerpClient
-from .util import (addr_overlap, clean_company, domain_contains_company, domain_of, email_domain, name_match,
-                   names_exactly, tokens, FREE_EMAIL)
+from .util import (acronym, addr_overlap, clean_company, domain_contains_company, domain_label, domain_of, email_domain,
+                   name_match, names_exactly, sig_tokens, tokens, FREE_EMAIL)
 
 SCAM_RE = re.compile(r"\b(scam|scams|scammer|fraud|fraudulent|fake|cheat|cheated|cheating|complaints?|blacklisted?|phishing|ponzi|duped|racket)\b", re.I)
 IMPERSONATION_RE = re.compile(r"(in the name of|impersonat|fake (job|offer|recruit|email|website|letter|mail)|fraudulent (job|offer|email|recruit)|beware of|fraud alert|do not fall)", re.I)
@@ -206,7 +206,10 @@ async def official_presence(ctx: Ctx) -> Out:
         if d and domain_contains_company(d, e.company):
             seen[d] = seen.get(d, 0) + 1
     order = list(seen)
-    official = max(order, key=lambda d: (seen[d], -order.index(d))) if order else ""
+    # A domain whose name IS the company (wipro.com) beats one that merely contains it (wiproferretto.com, another
+    # company); then the most frequent, then the highest ranked.
+    exact = {"".join(sig_tokens(e.company)), acronym(e.company)} - {""}
+    official = max(order, key=lambda d: (domain_label(d) in exact, seen[d], -order.index(d))) if order else ""
     ctx.facts["official_domain"] = official
     ctx.facts["official_domains"] = order
     n = 10

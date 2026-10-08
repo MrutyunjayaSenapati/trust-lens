@@ -94,6 +94,21 @@ def canonical_url(url: str) -> str:
     return p._replace(query="&".join(keep), fragment="").geturl()
 
 
+def posting_key(url: str) -> str:
+    """The part of a URL that identifies this one page: a long numeric id (Naukri, LinkedIn), Indeed's jk=, or the
+    last path segment (Lever uuid, Amazon ASIN). A search result is only "this page" if it contains the key;
+    otherwise any page on the same site would match (a Target posting standing in for a Ramxora one)."""
+    p = urlparse(url if "//" in url else "//" + url)
+    jk = re.search(r"(?:^|&)jk=([^&]+)", p.query)
+    if jk:
+        return jk.group(1)
+    m = re.search(r"(\d{6,})/?$", p.path)
+    if m:
+        return m.group(1)
+    last = next((s for s in reversed(p.path.split("/")) if s), "")
+    return last if len(last) >= 8 else ""
+
+
 def _words(slug: str) -> str:
     return re.sub(r"\s+", " ", unquote(slug).replace("-", " ")).strip()
 
@@ -138,11 +153,13 @@ async def resolve(url: str, serp: SerpClient) -> Resolved:
     if job_id:
         queries.append(f"linkedin.com/jobs/view/{job_id.group(1)}")
     queries.append(full)
+    key = posting_key(full)
     for q in queries:
         data = await serp.search("google", q=q, gl="in", hl="en", num=10)
         for r in data.get("organic_results", []):
             link = r.get("link", "")
-            same = domain_of(link) == host or (job_id and job_id.group(1) in link)
+            # same page = the result carries this posting's id; a bare domain match only when the URL has no id
+            same = (key in link) if key else domain_of(link) == host
             if not same:
                 continue
             out.title, out.snippet, out.link = r.get("title", ""), r.get("snippet", ""), link

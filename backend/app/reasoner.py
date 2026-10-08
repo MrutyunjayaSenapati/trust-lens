@@ -1,9 +1,10 @@
 """Cross-source reasoning: judgments that only make sense once every engine has answered."""
 import re
+from collections import Counter
 from typing import Any, Dict, List
 
-from .models import Contradiction, Entities, Evidence
-from .util import FREE_EMAIL, domain_label, email_domain, is_alt_domain
+from .models import Contradiction, Entities, Evidence, Source
+from .util import FREE_EMAIL, acronym, domain_label, email_domain, is_alt_domain, sig_tokens
 
 # Total Google Maps reviews across a company's own listings above which it counts as an established business.
 # Fake recruiters' "companies" have none or a handful; Infosys, Swiggy, Zerodha have thousands.
@@ -19,6 +20,35 @@ def alt_domain_ok(ent: Entities, facts: Dict[str, Any]) -> bool:
     ed, off = email_domain(ent.contact_email), facts.get("official_domain") or ""
     return (bool(ed and off) and is_alt_domain(ed, off) and int(facts.get("sender_domain_results") or 0) > 0
             and not facts.get("sender_domain_reports"))
+
+
+def _official_from_maps(ent: Entities, facts: Dict[str, Any], evidence: List[Evidence]) -> None:
+    """Search does not always surface the official site ("Wipro official website" returned job boards and a different
+    company, wiproferretto.com). When the company's own Maps listings agree on a domain that IS the company name,
+    that domain is the official site."""
+    if not ent.company:
+        return
+    exact = {"".join(sig_tokens(ent.company)), acronym(ent.company)} - {""}
+    sites = Counter(p["website"] for p in facts.get("maps_places") or [] if p["website"] and domain_label(p["website"]) in exact)
+    if not sites:
+        return
+    site = sites.most_common(1)[0][0]
+    off = facts.get("official_domain") or ""
+    if off and domain_label(off) in exact:
+        return  # search already found a convincing one
+    facts["official_domain"] = site
+    facts["official_domains"] = [site, *(facts.get("official_domains") or [])]
+    for ev in evidence:
+        if ev.id == "google-10":
+            ev.title, ev.signal, ev.weight = f"Official website: {site} (from the company's Maps listings)", "positive", 8
+            ev.detail = (f"Web search did not surface it clearly{f' (it suggested {off})' if off else ''}, but "
+                         f"{sites[site]} of the company's Google Maps listings link to {site}.")
+            ev.sources = [Source(title=site, url=f"https://{site}")]
+    ed = email_domain(ent.contact_email)
+    if ed and (ed == site or ed.endswith("." + site)) and not facts.get("email_matches_official"):
+        facts["email_matches_official"] = True
+        evidence.append(Evidence(id="google-11", engine="google", title="Email domain matches the official site",
+                                 detail=f"{ed} is the company's own domain.", signal="positive", weight=15))
 
 
 def _check_maps_identity(facts: Dict[str, Any], evidence: List[Evidence]) -> None:
@@ -53,6 +83,7 @@ def ats_owned(facts: Dict[str, Any]) -> bool:
 def reconcile(ent: Entities, facts: Dict[str, Any], evidence: List[Evidence]) -> List[Evidence]:
     """Re-weigh single-engine evidence in the light of the others. Every change is written into the evidence detail,
     so the score ledger still explains each point."""
+    _official_from_maps(ent, facts, evidence)
     _check_maps_identity(facts, evidence)
     if ats_owned(facts):
         evidence.append(Evidence(id="x-ats", engine="google", title=f"Posted on {facts['official_domain']}'s own hiring system",

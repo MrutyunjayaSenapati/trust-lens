@@ -2,25 +2,37 @@
   "summary": {
     "generated_at": "2026-10-08",
     "total": 23,
-    "correct": 13,
+    "correct": 22,
     "scams_caught": 12,
     "scams_total": 12,
-    "genuine_cleared": 1,
+    "genuine_cleared": 10,
     "genuine_total": 11,
-    "text_correct": 19,
+    "text_correct": 20,
     "text_scams_caught": 9,
-    "text_genuine_cleared": 10
+    "text_genuine_cleared": 11
+  },
+  "holdout": {
+    "total": 11,
+    "correct": 10,
+    "scams_caught": 4,
+    "scams_total": 5,
+    "genuine_cleared": 6,
+    "genuine_total": 6,
+    "text_correct": 8,
+    "text_scams_caught": 2,
+    "text_genuine_cleared": 6
   },
   "rows": [
     {
       "id": "s1",
       "label": "Fake internship, fee on UPI",
       "expected": "scam",
-      "score": 9,
+      "score": 0,
       "verdict": "likely_scam",
       "confidence": "medium",
       "engines": [
         "google",
+        "google_jobs",
         "google_maps",
         "google_news",
         "text-analysis"
@@ -30,7 +42,8 @@
       "text_score": 0,
       "text_verdict": "likely_scam",
       "text_correct": true,
-      "live_calls": 3
+      "live_calls": 1,
+      "split": "dev"
     },
     {
       "id": "s2",
@@ -55,7 +68,8 @@
       "text_score": 20,
       "text_verdict": "likely_scam",
       "text_correct": true,
-      "live_calls": 1
+      "live_calls": 0,
+      "split": "dev"
     },
     {
       "id": "s3",
@@ -77,7 +91,8 @@
       "text_score": 2,
       "text_verdict": "likely_scam",
       "text_correct": true,
-      "live_calls": 2
+      "live_calls": 0,
+      "split": "dev"
     },
     {
       "id": "s4",
@@ -94,7 +109,8 @@
       "text_score": 0,
       "text_verdict": "likely_scam",
       "text_correct": true,
-      "live_calls": 0
+      "live_calls": 0,
+      "split": "dev"
     },
     {
       "id": "s5",
@@ -110,12 +126,15 @@
         "google_news",
         "text-analysis"
       ],
-      "contradictions": [],
+      "contradictions": [
+        "Real company, but this offer does not trace back to it"
+      ],
       "correct": true,
       "text_score": 0,
       "text_verdict": "likely_scam",
       "text_correct": true,
-      "live_calls": 5
+      "live_calls": 0,
+      "split": "dev"
     },
     {
       "id": "s6",
@@ -136,7 +155,8 @@
       "text_score": 5,
       "text_verdict": "likely_scam",
       "text_correct": true,
-      "live_calls": 5
+      "live_calls": 1,
+      "split": "dev"
     },
     {
       "id": "s7",
@@ -159,7 +179,8 @@
       "text_score": 12,
       "text_verdict": "likely_scam",
       "text_correct": true,
-      "live_calls": 6
+      "live_calls": 0,
+      "split": "dev"
     },
     {
       "id": "s8",
@@ -182,7 +203,8 @@
       "text_score": 2,
       "text_verdict": "likely_scam",
       "text_correct": true,
-      "live_calls": 5
+      "live_calls": 0,
+      "split": "dev"
     },
     {
       "id": "s9",
@@ -194,6 +216,7 @@
       "engines": [
         "google",
         "google_jobs",
+        "google_maps",
         "google_news"
       ],
       "contradictions": [
@@ -205,14 +228,15 @@
       "text_score": 50,
       "text_verdict": "verify",
       "text_correct": false,
-      "live_calls": 3
+      "live_calls": 0,
+      "split": "dev"
     },
     {
       "id": "s10",
       "label": "TCS interview from look-alike domain",
       "expected": "scam",
-      "score": 30,
-      "verdict": "suspicious",
+      "score": 14,
+      "verdict": "likely_scam",
       "confidence": "high",
       "engines": [
         "google",
@@ -220,20 +244,24 @@
         "google_maps",
         "google_news"
       ],
-      "contradictions": [],
+      "contradictions": [
+        "Recruiter email is not on the official domain",
+        "Real company, but this offer does not trace back to it"
+      ],
       "correct": true,
       "text_score": 50,
       "text_verdict": "verify",
       "text_correct": false,
-      "live_calls": 3
+      "live_calls": 0,
+      "split": "dev"
     },
     {
       "id": "s11",
       "label": "Company that does not exist",
       "expected": "scam",
-      "score": 4,
+      "score": 14,
       "verdict": "likely_scam",
-      "confidence": "medium",
+      "confidence": "high",
       "engines": [
         "google",
         "google_jobs",
@@ -247,7 +275,8 @@
       "text_score": 50,
       "text_verdict": "verify",
       "text_correct": false,
-      "live_calls": 6
+      "live_calls": 1,
+      "split": "dev"
     },
     {
       "id": "s12",
@@ -268,14 +297,15 @@
       "text_score": 35,
       "text_verdict": "suspicious",
       "text_correct": true,
-      "live_calls": 5
+      "live_calls": 0,
+      "split": "dev"
     },
     {
       "id": "g1",
       "label": "Infosys careers page announcement",
       "expected": "genuine",
-      "score": 24,
-      "verdict": "likely_scam",
+      "score": 77,
+      "verdict": "likely_genuine",
       "confidence": "high",
       "engines": [
         "google",
@@ -286,34 +316,79 @@
       "contradictions": [
         "Genuine brand that is actively impersonated"
       ],
-      "correct": false,
+      "correct": true,
       "text_score": 50,
       "text_verdict": "verify",
       "text_correct": true,
-      "live_calls": 6
+      "live_calls": 0,
+      "split": "dev"
     },
     {
       "id": "g2",
       "label": "TCS NQT notification",
       "expected": "genuine",
-      "score": 40,
-      "verdict": "suspicious",
+      "score": 54,
+      "verdict": "verify",
       "confidence": "high",
       "engines": [
         "google",
+        "google_jobs",
         "google_maps",
         "google_news"
       ],
       "contradictions": [],
-      "correct": false,
+      "correct": true,
       "text_score": 50,
       "text_verdict": "verify",
       "text_correct": true,
-      "live_calls": 1
+      "live_calls": 1,
+      "split": "dev"
     },
     {
       "id": "g3",
       "label": "Zoho developer opening",
+      "expected": "genuine",
+      "score": 72,
+      "verdict": "verify",
+      "confidence": "high",
+      "engines": [
+        "google",
+        "google_jobs",
+        "google_maps",
+        "google_news"
+      ],
+      "contradictions": [],
+      "correct": true,
+      "text_score": 50,
+      "text_verdict": "verify",
+      "text_correct": true,
+      "live_calls": 1,
+      "split": "dev"
+    },
+    {
+      "id": "g4",
+      "label": "Razorpay backend intern",
+      "expected": "genuine",
+      "score": 50,
+      "verdict": "verify",
+      "confidence": "high",
+      "engines": [
+        "google",
+        "google_jobs",
+        "google_maps",
+        "google_news"
+      ],
+      "contradictions": [],
+      "correct": true,
+      "text_score": 50,
+      "text_verdict": "verify",
+      "text_correct": true,
+      "live_calls": 0,
+      "split": "dev"
+    },
+    {
+      "id": "g5",
+      "label": "Wipro careers drive",
       "expected": "genuine",
       "score": 7,
       "verdict": "likely_scam",
@@ -329,58 +404,20 @@
       "text_score": 50,
       "text_verdict": "verify",
       "text_correct": true,
-      "live_calls": 6
-    },
-    {
-      "id": "g4",
-      "label": "Razorpay backend intern",
-      "expected": "genuine",
-      "score": 15,
-      "verdict": "likely_scam",
-      "confidence": "high",
-      "engines": [
-        "google",
-        "google_jobs",
-        "google_maps",
-        "google_news"
-      ],
-      "contradictions": [],
-      "correct": false,
-      "text_score": 50,
-      "text_verdict": "verify",
-      "text_correct": true,
-      "live_calls": 5
-    },
-    {
-      "id": "g5",
-      "label": "Wipro careers drive",
-      "expected": "genuine",
-      "score": 1,
-      "verdict": "likely_scam",
-      "confidence": "high",
-      "engines": [
-        "google",
-        "google_jobs",
-        "google_maps",
-        "google_news"
-      ],
-      "contradictions": [],
-      "correct": false,
-      "text_score": 50,
-      "text_verdict": "verify",
-      "text_correct": true,
-      "live_calls": 0
+      "live_calls": 0,
+      "split": "dev"
     },
     {
       "id": "g8",
       "label": "Freshworks recruiter schedules a round",
       "expected": "genuine",
-      "score": 50,
-      "verdict": "verify",
+      "score": 100,
+      "verdict": "likely_genuine",
       "confidence": "high",
       "engines": [
         "google",
         "google_jobs",
+        "google_maps",
         "google_news"
       ],
       "contradictions": [],
@@ -388,14 +425,15 @@
       "text_score": 50,
       "text_verdict": "verify",
       "text_correct": true,
-      "live_calls": 6
+      "live_calls": 0,
+      "split": "dev"
     },
     {
       "id": "g9",
       "label": "Zerodha assignment email",
       "expected": "genuine",
-      "score": 34,
-      "verdict": "suspicious",
+      "score": 87,
+      "verdict": "likely_genuine",
       "confidence": "high",
       "engines": [
         "google",
@@ -404,37 +442,145 @@
         "google_news"
       ],
       "contradictions": [],
-      "correct": false,
+      "correct": true,
       "text_score": 50,
       "text_verdict": "verify",
       "text_correct": true,
-      "live_calls": 6
+      "live_calls": 0,
+      "split": "dev"
     },
     {
       "id": "g10",
       "label": "Postman intern next stage",
       "expected": "genuine",
-      "score": 19,
+      "score": 87,
+      "verdict": "likely_genuine",
+      "confidence": "high",
+      "engines": [
+        "google",
+        "google_jobs",
+        "google_maps",
+        "google_news"
+      ],
+      "contradictions": [],
+      "correct": true,
+      "text_score": 50,
+      "text_verdict": "verify",
+      "text_correct": true,
+      "live_calls": 0,
+      "split": "dev"
+    },
+    {
+      "id": "g11",
+      "label": "Swiggy drive, confirm by tonight",
+      "expected": "genuine",
+      "score": 68,
+      "verdict": "verify",
+      "confidence": "high",
+      "engines": [
+        "google",
+        "google_jobs",
+        "google_maps",
+        "google_news"
+      ],
+      "contradictions": [],
+      "correct": true,
+      "text_score": 50,
+      "text_verdict": "verify",
+      "text_correct": true,
+      "live_calls": 0,
+      "split": "dev"
+    },
+    {
+      "id": "g6",
+      "label": "Flipkart phone at market price",
+      "expected": "genuine",
+      "score": 64,
+      "verdict": "verify",
+      "confidence": "high",
+      "engines": [
+        "google",
+        "google_maps",
+        "google_news",
+        "google_shopping"
+      ],
+      "contradictions": [
+        "Genuine brand that is actively impersonated"
+      ],
+      "correct": true,
+      "text_score": 50,
+      "text_verdict": "verify",
+      "text_correct": true,
+      "live_calls": 0,
+      "split": "dev"
+    },
+    {
+      "id": "g7",
+      "label": "Redmi at near-MRP",
+      "expected": "genuine",
+      "score": 60,
+      "verdict": "verify",
+      "confidence": "high",
+      "engines": [
+        "google",
+        "google_maps",
+        "google_news",
+        "google_shopping"
+      ],
+      "contradictions": [],
+      "correct": true,
+      "text_score": 50,
+      "text_verdict": "verify",
+      "text_correct": true,
+      "live_calls": 0,
+      "split": "dev"
+    },
+    {
+      "id": "h-s1",
+      "label": "Food-review task job on WhatsApp",
+      "expected": "scam",
+      "score": 50,
+      "verdict": "verify",
+      "confidence": "low",
+      "engines": [],
+      "contradictions": [],
+      "correct": false,
+      "text_score": 50,
+      "text_verdict": "verify",
+      "text_correct": false,
+      "live_calls": 0,
+      "split": "holdout"
+    },
+    {
+      "id": "h-s2",
+      "label": "'HR executive' asks refundable registration fee",
+      "expected": "scam",
+      "score": 0,
       "verdict": "likely_scam",
       "confidence": "high",
       "engines": [
         "google",
         "google_jobs",
         "google_maps",
-        "google_news"
+        "google_news",
+        "text-analysis"
       ],
-      "contradictions": [],
-      "correct": false,
-      "text_score": 50,
-      "text_verdict": "verify",
+      "contradictions": [
+        "Real company, but this offer does not trace back to it",
+        "Genuine brand that is actively impersonated"
+      ],
+      "correct": true,
+      "text_score": 20,
+      "text_verdict": "likely_scam",
       "text_correct": true,
-      "live_calls": 6
+      "live_calls": 5,
+      "split": "holdout"
     },
     {
-      "id": "g11",
-      "label": "Swiggy drive, confirm by tonight",
-      "expected": "genuine",
-      "score": 0,
+      "id": "h-s3",
+      "label": "Deloitte offer letter from look-alike domain, no fee",
+      "expected": "scam",
+      "score": 10,
       "verdict": "likely_scam",
       "confidence": "high",
       "engines": [
@@ -447,54 +593,182 @@
         "Recruiter email is not on the official domain",
         "Real company, but this offer does not trace back to it"
       ],
-      "correct": false,
+      "correct": true,
       "text_score": 50,
       "text_verdict": "verify",
-      "text_correct": true,
-      "live_calls": 6
+      "text_correct": false,
+      "live_calls": 6,
+      "split": "holdout"
     },
     {
-      "id": "g6",
-      "label": "Flipkart phone at market price",
-      "expected": "genuine",
-      "score": 21,
-      "verdict": "likely_scam",
-      "confidence": "high",
-      "engines": [
-        "google",
-        "google_maps",
-        "google_news",
-        "google_shopping"
-      ],
-      "contradictions": [
-        "Genuine brand that is actively impersonated"
-      ],
-      "correct": false,
-      "text_score": 50,
-      "text_verdict": "verify",
-      "text_correct": true,
-      "live_calls": 5
-    },
-    {
-      "id": "g7",
-      "label": "Redmi at near-MRP",
-      "expected": "genuine",
+      "id": "h-s4",
+      "label": "Fake placement agency with processing fee",
+      "expected": "scam",
       "score": 0,
       "verdict": "likely_scam",
       "confidence": "high",
       "engines": [
         "google",
+        "google_jobs",
         "google_maps",
-        "google_news",
-        "google_shopping",
         "text-analysis"
       ],
-      "contradictions": [],
-      "correct": false,
-      "text_score": 20,
+      "contradictions": [
+        "Company leaves no verifiable footprint"
+      ],
+      "correct": true,
+      "text_score": 5,
       "text_verdict": "likely_scam",
+      "text_correct": true,
+      "live_calls": 4,
+      "split": "holdout"
+    },
+    {
+      "id": "h-s5",
+      "label": "Wipro interview from look-alike domain, no fee",
+      "expected": "scam",
+      "score": 0,
+      "verdict": "likely_scam",
+      "confidence": "high",
+      "engines": [
+        "google",
+        "google_jobs",
+        "google_maps",
+        "google_news"
+      ],
+      "contradictions": [
+        "Recruiter email is not on the official domain"
+      ],
+      "correct": true,
+      "text_score": 50,
+      "text_verdict": "verify",
       "text_correct": false,
-      "live_calls": 5
+      "live_calls": 3,
+      "split": "holdout"
+    },
+    {
+      "id": "h-g1",
+      "label": "Real Accenture posting (LinkedIn link)",
+      "expected": "genuine",
+      "score": 90,
+      "verdict": "likely_genuine",
+      "confidence": "high",
+      "engines": [
+        "google",
+        "google_jobs",
+        "google_maps",
+        "google_news"
+      ],
+      "contradictions": [],
+      "correct": true,
+      "text_score": 50,
+      "text_verdict": "verify",
+      "text_correct": true,
+      "live_calls": 0,
+      "split": "holdout"
+    },
+    {
+      "id": "h-g2",
+      "label": "Real Wahed posting (Lever link)",
+      "expected": "genuine",
+      "score": 62,
+      "verdict": "verify",
+      "confidence": "high",
+      "engines": [
+        "google",
+        "google_jobs",
+        "google_maps",
+        "google_news"
+      ],
+      "contradictions": [],
+      "correct": true,
+      "text_score": 50,
+      "text_verdict": "verify",
+      "text_correct": true,
+      "live_calls": 1,
+      "split": "holdout"
+    },
+    {
+      "id": "h-g3",
+      "label": "Groww recruiter email",
+      "expected": "genuine",
+      "score": 91,
+      "verdict": "likely_genuine",
+      "confidence": "high",
+      "engines": [
+        "google",
+        "google_jobs",
+        "google_maps",
+        "google_news"
+      ],
+      "contradictions": [],
+      "correct": true,
+      "text_score": 50,
+      "text_verdict": "verify",
+      "text_correct": true,
+      "live_calls": 6,
+      "split": "holdout"
+    },
+    {
+      "id": "h-g4",
+      "label": "Meesho campus interview",
+      "expected": "genuine",
+      "score": 83,
+      "verdict": "likely_genuine",
+      "confidence": "high",
+      "engines": [
+        "google",
+        "google_jobs",
+        "google_maps",
+        "google_news"
+      ],
+      "contradictions": [],
+      "correct": true,
+      "text_score": 50,
+      "text_verdict": "verify",
+      "text_correct": true,
+      "live_calls": 5,
+      "split": "holdout"
+    },
+    {
+      "id": "h-g5",
+      "label": "CRED hiring manager reply",
+      "expected": "genuine",
+      "score": 91,
+      "verdict": "likely_genuine",
+      "confidence": "high",
+      "engines": [
+        "google",
+        "google_maps",
+        "google_news"
+      ],
+      "contradictions": [],
+      "correct": true,
+      "text_score": 50,
+      "text_verdict": "verify",
+      "text_correct": true,
+      "live_calls": 5,
+      "split": "holdout"
+    },
+    {
+      "id": "h-g6",
+      "label": "Juspay assignment",
+      "expected": "genuine",
+      "score": 50,
+      "verdict": "verify",
+      "confidence": "medium",
+      "engines": [
+        "google",
+        "google_maps",
+        "google_news"
+      ],
+      "contradictions": [],
+      "correct": true,
+      "text_score": 50,
+      "text_verdict": "verify",
+      "text_correct": true,
+      "live_calls": 3,
+      "split": "holdout"
     }
   ]
 }
