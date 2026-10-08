@@ -10,13 +10,15 @@ import { VERDICT_COLOR } from "@/lib/verdict";
 
 interface Row {
   id: string; label: string; expected: "scam" | "genuine"; score?: number; verdict?: Verdict; confidence?: string; correct?: boolean;
-  contradictions?: string[]; error?: boolean; text_verdict?: Verdict; text_correct?: boolean;
+  contradictions?: string[]; error?: boolean; text_verdict?: Verdict; text_correct?: boolean; split?: "dev" | "holdout";
+}
+interface Split {
+  total: number; correct: number; scams_caught: number; scams_total: number; genuine_cleared: number; genuine_total: number;
+  text_correct?: number; text_scams_caught?: number; text_genuine_cleared?: number;
 }
 interface Bench {
-  summary: null | {
-    generated_at: string; total: number; correct: number; scams_caught: number; scams_total: number; genuine_cleared: number; genuine_total: number;
-    text_correct?: number; text_scams_caught?: number; text_genuine_cleared?: number;
-  };
+  summary: null | (Split & { generated_at: string });
+  holdout?: Split;
   rows: Row[];
 }
 
@@ -53,8 +55,22 @@ export default function Benchmark() {
         {failed && <p className="mt-8 rounded-xl border border-scam/40 bg-scam-wash p-3 text-sm text-scam">{t.apiDown}</p>}
         {data && !data.summary && <p className="mt-8 rounded-xl border border-dashed border-line-strong p-6 text-center text-ink-soft">{t.bmEmpty}</p>}
 
+        {data?.holdout && data.holdout.total > 0 && (
+          <section className="mt-8">
+            <h2 className="font-display text-2xl font-semibold text-ink">{t.bmHoldTitle}</h2>
+            <p className="mt-1 max-w-2xl text-sm text-ink-soft">{t.bmHoldSub}</p>
+            <div className="mt-4 grid gap-4 sm:grid-cols-3">
+              <Big label={t.bmCaught} n={data.holdout.scams_caught} d={data.holdout.scams_total} />
+              <Big label={t.bmCleared} n={data.holdout.genuine_cleared} d={data.holdout.genuine_total} />
+              <Big label={t.bmOverall} n={data.holdout.correct} d={data.holdout.total} />
+            </div>
+          </section>
+        )}
+
         {data?.summary && (
           <>
+            {data.holdout && <h2 className="mt-10 font-display text-2xl font-semibold text-ink">{t.bmDevTitle}</h2>}
+            {data.holdout && <p className="mt-1 max-w-2xl text-sm text-ink-soft">{t.bmDevSub}</p>}
             <div className="mt-8 grid gap-4 sm:grid-cols-3">
               <Big label={t.bmCaught} n={data.summary.scams_caught} d={data.summary.scams_total} />
               <Big label={t.bmCleared} n={data.summary.genuine_cleared} d={data.summary.genuine_total} />
@@ -92,7 +108,10 @@ export default function Benchmark() {
                   {data.rows.map((r) => (
                     <tr key={r.id} className={r.correct === false ? "bg-scam-wash/50" : ""}>
                       <td className="p-3">
-                        <p className="font-medium text-ink">{r.label}</p>
+                        <p className="font-medium text-ink">
+                          {r.label}
+                          {r.split === "holdout" && <span className="ml-2 rounded bg-paper-2 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-widest text-ink-faint">{t.bmUnseen}</span>}
+                        </p>
                         {r.contradictions && r.contradictions.length > 0 && <p className="mt-0.5 text-xs text-ink-faint">⚡ {r.contradictions.join(" · ")}</p>}
                       </td>
                       <td className="p-3">{r.expected === "scam" ? t.bmScam : t.bmGenuine}</td>
