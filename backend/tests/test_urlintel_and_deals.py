@@ -3,7 +3,7 @@ import asyncio
 from app import gemini
 from app.config import settings
 from app.extraction import apply_resolved, heuristic_entities
-from app.urlintel import Resolved, _parse_title, find_url, is_link_only
+from app.urlintel import Resolved, _parse_title, find_url, is_link_only, url_hints
 
 
 def test_link_only_detection():
@@ -22,6 +22,21 @@ def test_linkedin_title_parsing():
 def test_naukri_style_title_parsing():
     p = _parse_title("Data Analyst - Zoho Corporation - Chennai | Naukri.com", "naukri.com")
     assert p["company"] == "Zoho Corporation" and p["role"] == "Data Analyst" and p["city"] == "Chennai"
+
+
+def test_naukri_title_with_experience():
+    p = _parse_title("Software Engineer - Acme Technologies - 3-5 Yrs - Bengaluru | Naukri.com", "naukri.com")
+    assert p == {"role": "Software Engineer", "company": "Acme Technologies", "city": "Bengaluru"}
+    # role + location only is ambiguous and must not invent a company
+    assert _parse_title("Full Stack Engineer - Greater Kolkata Area", "in.linkedin.com") == {}
+
+
+def test_url_hints_from_job_links():
+    h = url_hints("https://in.linkedin.com/jobs/view/full-stack-engineer-at-accenture-in-india-4474509677")
+    assert h["role"] == "Full Stack Engineer" and h["company"] == "Accenture In India"
+    h = url_hints("https://www.naukri.com/job-listings-software-engineer-acme-technologies-pvt-ltd-bengaluru-3-to-5-years-081024012345")
+    assert h["url_words"] == "software engineer acme technologies pvt ltd bengaluru"
+    assert url_hints("https://www.linkedin.com/jobs/view/4474509677/") == {}  # bare link: needs the redirect
 
 
 def test_apply_resolved_fills_gaps_only():

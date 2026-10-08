@@ -2,11 +2,15 @@
 
 LinkedIn, Naukri and most shops block scrapers, but Google has already indexed their titles and snippets, so one
 SerpApi google search on the URL tells us who is hiring, for what role, where, or what product is being sold.
+
+Brand-new postings are not indexed yet. Job sites often put the role and company in the URL itself
+(/jobs/view/full-stack-engineer-at-accenture-in-india-4474509677, /job-listings-...), so those words are used as a
+fallback. A bare /jobs/view/<id> link carries no such words; the user is asked to paste the posting text instead.
 """
 import re
 from dataclasses import dataclass
 from typing import Optional
-from urllib.parse import urlparse
+from urllib.parse import unquote, urlparse
 
 from .serp import SerpClient
 from .util import domain_of
@@ -20,6 +24,11 @@ DASH_RE = re.compile(r"^(?P<role>.+?)\s+[-–|]\s+(?P<company>.+?)\s+[-–|]\s+(
 
 JOB_HOSTS = ("linkedin.com", "naukri.com", "indeed.com", "internshala.com", "foundit.in", "glassdoor", "instahyre", "wellfound", "apna.co", "shine.com")
 SHOP_HOSTS = ("amazon.", "flipkart.com", "myntra.com", "meesho.com", "snapdeal.com", "ajio.com", "olx.in", "tatacliq.com")
+EXPERIENCE_RE = re.compile(r"\b\d+\s*(?:-|to)\s*\d+\s*(?:yrs?|years?)\b|\b\d+\+?\s*(?:yrs?|years?)\b|\bfresher\b", re.I)
+# /jobs/view/full-stack-engineer-at-accenture-in-india-4474509677
+LINKEDIN_SLUG_RE = re.compile(r"/jobs/view/(?P<role>[a-z0-9-]+?)-at-(?P<company>[a-z0-9-]+?)-\d{6,}", re.I)
+# /job-listings-software-engineer-acme-technologies-pvt-ltd-bengaluru-3-to-5-years-081024012345
+NAUKRI_SLUG_RE = re.compile(r"/job-listings-(?P<words>[a-z0-9-]+?)-\d{9,}", re.I)
 
 
 @dataclass
@@ -32,6 +41,8 @@ class Resolved:
     city: Optional[str] = None
     kind: str = "other"
     link: str = ""
+    url_words: str = ""  # role/company words found in the URL itself, for postings Google has not indexed yet
+    on_job_site: bool = False
 
     @property
     def found(self) -> bool:
@@ -55,18 +66,40 @@ def _parse_title(title: str, host: str) -> dict:
     if m:
         return {"company": m.group("company").strip(), "role": m.group("role").strip(),
                 "city": (m.group("city") or "").split(",")[0].strip() or None}
-    m = DASH_RE.match(t)
-    if m and any(h in host for h in JOB_HOSTS):
-        return {"company": m.group("company").strip(), "role": m.group("role").strip(), "city": m.group("city").split(",")[0].strip()}
+    if any(h in host for h in JOB_HOSTS):
+        # "Software Engineer - Acme Technologies - 3-5 Yrs - Bengaluru": drop the experience part before splitting
+        parts = [p.strip() for p in re.split(r"\s+[-–|]\s+", t) if p.strip() and not EXPERIENCE_RE.fullmatch(p.strip())]
+        if len(parts) >= 3:  # two parts are ambiguous ("Full Stack Engineer - Greater Kolkata Area"), so not used
+            return {"role": parts[0], "company": parts[1], "city": parts[-1].split(",")[0].strip()}
+    return {}
+
+
+def _words(slug: str) -> str:
+    return re.sub(r"\s+", " ", unquote(slug).replace("-", " ")).strip()
+
+
+def url_hints(url: str) -> dict:
+    """Role/company words that job sites put in the URL itself. Free: no request is made."""
+    m = LINKEDIN_SLUG_RE.search(url)
+    if m:
+        return {"role": _words(m.group("role")).title(), "company": _words(m.group("company")).title(),
+                "url_words": f"{_words(m.group('role'))} at {_words(m.group('company'))}"}
+    m = NAUKRI_SLUG_RE.search(url)
+    if m:  # no separator between role, company and city: hand the words to extraction (Gemini, then regex)
+        return {"url_words": EXPERIENCE_RE.sub("", _words(m.group("words").replace("-to-", " to "))).strip()}
     return {}
 
 
 async def resolve(url: str, serp: SerpClient) -> Resolved:
     full = url if url.lower().startswith("http") else "https://" + url
     host = domain_of(full)
-    out = Resolved(url=full)
+    out = Resolved(url=full, on_job_site=any(h in host for h in JOB_HOSTS))
     queries = []
     job_id = LINKEDIN_JOB_RE.search(full)
+    for k, v in url_hints(full).items():
+        setattr(out, k, v)
+    if out.on_job_site:
+        out.kind = "job_offer"
     if job_id:
         queries.append(f"linkedin.com/jobs/view/{job_id.group(1)}")
     queries.append(full)
@@ -83,10 +116,8 @@ async def resolve(url: str, serp: SerpClient) -> Resolved:
             break
     if not out.title:
         return out
-    for k, v in _parse_title(out.title, host).items():
+    for k, v in _parse_title(out.title, host).items():  # Google's indexed title beats words guessed from the URL
         setattr(out, k, v)
-    if any(h in host for h in JOB_HOSTS):
-        out.kind = "job_offer"
-    elif any(h in host for h in SHOP_HOSTS):
+    if not out.on_job_site and any(h in host for h in SHOP_HOSTS):
         out.kind = "deal"
     return out

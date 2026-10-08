@@ -71,14 +71,14 @@ def heuristic_entities(text: str) -> Entities:
 
 def apply_resolved(ent: Entities, res) -> Entities:
     """Fill gaps from a link resolved through SerpApi; never overwrite what the message itself says."""
-    if res is None or not res.found:
+    if res is None or not (res.found or res.company or res.url_words):
         return ent
     if res.kind != "other" and ent.kind in ("other",):
         ent.kind = res.kind
     for f in ("company", "role", "city"):
         if not getattr(ent, f) and getattr(res, f):
             setattr(ent, f, getattr(res, f))
-    if ent.kind == "deal" and not ent.product:
+    if ent.kind == "deal" and not ent.product and res.title:
         ent.product = re.sub(r"\s*[|:\-]\s*(Amazon|Flipkart|Myntra|Meesho|Buy).*$", "", res.title, flags=re.I).strip() or None
     if not ent.website:
         ent.website = res.url

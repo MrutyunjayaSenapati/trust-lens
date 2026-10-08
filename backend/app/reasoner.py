@@ -36,8 +36,16 @@ def reconcile(ent: Entities, facts: Dict[str, Any], evidence: List[Evidence]) ->
             if ev.id == "google-20" and ev.weight < 0:
                 ev.weight, ev.signal = 0, "neutral"
     # A real brand is not evidence that a message is real. Brand-existence credit only counts when the message itself
-    # traces back to the company through its email domain; otherwise anyone could borrow "Amazon" and score well.
-    traced = facts.get("email_matches_official") or alt_domain_ok(ent, facts)
+    # traces back to the company: through its email domain, or (for a pasted link) a job-site posting that Google has
+    # indexed under that company while Google Jobs independently lists the role there. Otherwise anyone could borrow
+    # "Amazon" and score well.
+    listing_traced = bool(facts.get("job_site_listing")) and facts.get("jobs_found") is True
+    traced = facts.get("email_matches_official") or alt_domain_ok(ent, facts) or listing_traced
+    if listing_traced:
+        evidence.append(Evidence(id="x-listing", engine="google", title="Posting traces back to the company",
+                                 detail=f"Google has indexed this posting on {facts['job_site_listing']} under this company, and Google Jobs "
+                                        "independently lists the role there. Still apply only through the job site or the official careers page.",
+                                 signal="positive", weight=0))
     if ent.kind == "job_offer" and not traced:
         for ev in evidence:
             if ev.id in ("google_maps-1", "google-10") and ev.weight > 0:

@@ -8,6 +8,7 @@ from .reasoner import active_warning, confidence, cross_check, reconcile, score,
 from .serp import SerpClient
 from .synthesis import synthesize
 from .urlintel import find_url, is_link_only, resolve
+from .util import domain_of
 
 ENGINE_LABEL = {
     "google": "Google Search", "google_news": "Google News", "google_maps": "Google Maps",
@@ -81,6 +82,21 @@ async def run(req: InvestigateRequest) -> AsyncIterator[Dict[str, Any]]:
             link_ev.append(Evidence(id="google-link", engine="google", title="Link is indexed by Google",
                                     detail=f"Google lists this page as “{resolved.title}”. Being listed does not prove an offer is genuine, but a link Google has never seen is a warning sign.",
                                     signal="positive", weight=4, sources=[Source(title=resolved.title, url=resolved.link or resolved.url)]))
+        elif resolved and resolved.url_words:
+            # A new posting on a job site: not indexed yet, but its address names the role and company.
+            yield {"type": "stage", "stage": "link", "message": f"Not indexed by Google yet; the link's address reads: {resolved.url_words}"}
+            extract_text = f"{text}\n\nJob posting on {domain_of(resolved.url)}. The link's address reads: {resolved.url_words}"
+            source_note = f"Not indexed by Google yet. Role and company read from the link's address: “{resolved.url_words}”."
+            link_ev.append(Evidence(id="google-link", engine="google", title="Posting is too new for Google to have indexed it",
+                                    detail="Normal for a posting from the last day or two. The role and company were read from the link itself, "
+                                           "so the company can still be checked, but the posting itself cannot be confirmed yet.",
+                                    signal="neutral", weight=0))
+        elif resolved and resolved.on_job_site:
+            source_note = f"Google has not indexed this {domain_of(resolved.url)} posting yet, and the link itself does not name the company."
+            link_ev.append(Evidence(id="google-link", engine="google", title="Posting not indexed by Google yet",
+                                    detail="Common for postings from the last day or two, so this is not held against it. Paste the posting "
+                                           "text (company, role, recruiter's email) and TrustLens can check the company.",
+                                    signal="neutral", weight=0))
         else:
             source_note = "This link could not be matched to any page Google knows about."
             link_ev.append(Evidence(id="google-link", engine="google", title="Google has no record of this link",
@@ -94,6 +110,8 @@ async def run(req: InvestigateRequest) -> AsyncIterator[Dict[str, Any]]:
     yield {"type": "entities", "entities": ent.model_dump()}
 
     ctx = C.Ctx(text=text, ent=ent, serp=serp, image_url=req.image_url)
+    if resolved and resolved.found and resolved.on_job_site:
+        ctx.facts["job_site_listing"] = domain_of(resolved.url)  # Google has indexed this posting on a job site
     evidence: List[Evidence] = []
     contradictions: List[Contradiction] = []
 
