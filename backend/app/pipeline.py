@@ -4,7 +4,7 @@ from typing import Any, AsyncIterator, Dict, List
 from . import collectors as C
 from .extraction import apply_resolved, extract, red_flags
 from .models import (Contradiction, Evidence, GraphEdge, GraphNode, InvestigateRequest, Result, Source)
-from .reasoner import confidence, cross_check, reconcile, score, verdict
+from .reasoner import active_warning, confidence, cross_check, reconcile, score, verdict
 from .serp import SerpClient
 from .synthesis import synthesize
 from .urlintel import find_url, is_link_only, resolve
@@ -141,6 +141,14 @@ async def run(req: InvestigateRequest) -> AsyncIterator[Dict[str, Any]]:
 
     s = score(evidence, contradictions)
     v = verdict(s)
+    # Nothing could be searched and nothing in the text is alarming: say "can't tell", never "suspicious".
+    # (e.g. a brand-new LinkedIn link that Google has not indexed yet)
+    if not plan and not contradictions and all(abs(e.weight) <= 4 for e in evidence):
+        v = "verify"
+    # "Likely scam" needs an active warning sign (fee demand, scam reports, a contradiction...). Missing footprint
+    # alone (no Maps, no website) only makes a small or new firm unverifiable, so it stops at "suspicious".
+    if v == "likely_scam" and not active_warning(evidence, contradictions):
+        v = "suspicious"
     yield {"type": "stage", "stage": "write", "message": f"Trust score {s}/100. Writing the briefing…"}
     syn = await synthesize(v, s, ent, evidence, contradictions)
     nodes, edges = build_graph(ent.company or "Submission", evidence, contradictions)

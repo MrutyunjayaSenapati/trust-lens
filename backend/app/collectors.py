@@ -7,11 +7,26 @@ from typing import Any, Dict, List, Optional
 from .models import Contradiction, Entities, Evidence, Source
 from .serp import SerpClient
 from .util import (addr_overlap, clean_company, domain_contains_company, domain_of, email_domain, name_match,
-                   FREE_EMAIL)
+                   names_exactly, tokens, FREE_EMAIL)
 
 SCAM_RE = re.compile(r"\b(scam|scams|scammer|fraud|fraudulent|fake|cheat|cheated|cheating|complaints?|blacklisted?|phishing|ponzi|duped|racket)\b", re.I)
 IMPERSONATION_RE = re.compile(r"(in the name of|impersonat|fake (job|offer|recruit|email|website|letter|mail)|fraudulent (job|offer|email|recruit)|beware of|fraud alert|do not fall)", re.I)
 RESIDENTIAL = ("apartment", "residential", "house", "flat", "home", "villa", "pg ", "hostel")
+SEGMENT_RE = re.compile(r"\.{2,}|…|\||·|[!?]|(?<=\w{4})\.\s")
+SCAM_WORDS = r"(?:scam|scams|scammer|scammed|fraud|fraudulent|fake|cheat|cheated|cheating|complaints?|blacklisted?|phishing|ponzi|duped|racket)"
+
+
+def scam_near(text: str, company: str, window: int = 6) -> bool:
+    """A scam word within `window` words of the exact company name. Job boards print "Fraud Alert" banners and
+    "Fraud Investigation jobs" next to every listing; only wording about *this* company should count against it."""
+    name = " ".join(tokens(clean_company(company)))
+    if not name:
+        return False
+    gap = rf"(?:\s+\w+){{0,{window}}}\s+"
+    pat = re.compile(rf"\b{re.escape(name)}\b{gap}{SCAM_WORDS}\b|\b{SCAM_WORDS}{gap}{re.escape(name)}\b")
+    # Same sentence or listing fragment only. Snippets glue unrelated items together with "...", "|" or "·";
+    # a full stop ends a sentence unless it closes a short abbreviation such as "Pvt." or "Ltd.".
+    return any(pat.search(" ".join(tokens(seg))) for seg in SEGMENT_RE.split(text))
 
 
 @dataclass
@@ -49,11 +64,11 @@ async def scam_reports(ctx: Ctx) -> Out:
     complaints, advisories = [], []
     for r in res:
         blob = f"{r.get('title', '')} {r.get('snippet', '')}"
-        if not name_match(blob, c, 0.5):
+        if not names_exactly(blob, c):  # a page must name this exact company before it counts against it
             continue
-        if IMPERSONATION_RE.search(blob):
+        if IMPERSONATION_RE.search(blob) and (scam_near(blob, c, 12) or re.search(rf"name of\W+{re.escape(clean_company(c))}", blob, re.I)):
             advisories.append((r.get("title", ""), r.get("link", "")))
-        elif SCAM_RE.search(blob):
+        elif scam_near(blob, c):
             complaints.append((r.get("title", ""), r.get("link", "")))
     ctx.facts["complaints"] = len(complaints)
     if len(complaints) >= 3:
@@ -87,7 +102,7 @@ async def news(ctx: Ctx) -> Out:
     hits = []
     for r in res:
         title = r.get("title", "")
-        if name_match(title, c, 0.5) and SCAM_RE.search(title + " " + r.get("snippet", "")):
+        if names_exactly(title, c) and scam_near(title + " " + r.get("snippet", ""), c, 10):
             hits.append((f"{title} ({(r.get('source') or {}).get('name', '')})", r.get("link", "")))
     ctx.facts["news_hits"] = len(hits)
     if hits:

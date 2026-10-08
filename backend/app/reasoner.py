@@ -79,7 +79,8 @@ def cross_check(ent: Entities, facts: Dict[str, Any], evidence: List[Evidence]) 
             evidence_ids=[i for i in ("google_maps-1", "google_jobs-1", "google-11", "google-20") if i in ids], weight=-20))
 
     # Nothing verifiable at all. Each absence is already scored by its own engine, so this only explains the pattern.
-    if ent.company and facts.get("maps_found") is False and not facts.get("official_domain") and facts.get("jobs_found") in (False, None):
+    # "official_domain" is only in facts when the website search actually ran: a timeout is "unknown", not "absent".
+    if ent.company and facts.get("maps_found") is False and facts.get("official_domain", None) == "" and facts.get("jobs_found") in (False, None):
         out.append(Contradiction(
             id="x-ghost",
             title="Company leaves no verifiable footprint",
@@ -94,6 +95,20 @@ def cross_check(ent: Entities, facts: Dict[str, Any], evidence: List[Evidence]) 
             detail="Scam advisories exist for this brand. Treat any offer as unverified until confirmed via the company's official careers page.",
             evidence_ids=[i for i in ("google-2",) if i in ids], weight=-4))
     return out
+
+
+# Evidence that only says "we could not find X" (as opposed to "we found something wrong").
+ABSENCE_IDS = {"google_maps-1", "google-10", "google-link"}
+
+
+def _is_absence(e: Evidence) -> bool:
+    # google_maps-1 is also used for "listed, but rated 1.8", which is a real warning, hence the title check
+    return e.id in ABSENCE_IDS and e.title.startswith(("No ", "Google has no"))
+
+
+def active_warning(evidence: List[Evidence], contradictions: List[Contradiction]) -> bool:
+    return (any(e.weight < 0 and not _is_absence(e) for e in evidence)
+            or any(c.weight < 0 for c in contradictions))
 
 
 def score(evidence: List[Evidence], contradictions: List[Contradiction]) -> int:

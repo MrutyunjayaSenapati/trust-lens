@@ -63,6 +63,13 @@ def addr_overlap(claimed: str, found: str) -> float:
     return len([t for t in a if t in b]) / len(a)
 
 
+def names_exactly(text: str, company: str) -> bool:
+    """The text names this company as a whole phrase: 'HRM Counsel' matches 'HRM Counsel Pvt Ltd' but not 'counseling'.
+    Used where a loose match is dangerous, i.e. before blaming a company for someone else's scam."""
+    name = " ".join(tokens(clean_company(company)))
+    return bool(name) and re.search(rf"\b{re.escape(name)}\b", " ".join(tokens(text))) is not None
+
+
 def clean_company(company: str) -> str:
     """'Wipro Limited' -> 'Wipro'. Legal suffixes add nothing to a search and can drown it ('Limited' -> dictionaries)."""
     words = (company or "").split()
