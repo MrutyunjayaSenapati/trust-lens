@@ -1,8 +1,54 @@
-"""Cross-source reasoning: contradictions that only appear when engines are compared."""
+"""Cross-source reasoning: judgments that only make sense once every engine has answered."""
 from typing import Any, Dict, List
 
 from .models import Contradiction, Entities, Evidence
-from .util import FREE_EMAIL, email_domain
+from .util import FREE_EMAIL, email_domain, is_alt_domain
+
+# Total Google Maps reviews across a company's own listings above which it counts as an established business.
+# Fake recruiters' "companies" have none or a handful; Infosys, Swiggy, Zerodha have thousands.
+ESTABLISHED_REVIEWS = 100
+
+
+def established(facts: Dict[str, Any]) -> bool:
+    return int(facts.get("maps_reviews") or 0) >= ESTABLISHED_REVIEWS
+
+
+def alt_domain_ok(ent: Entities, facts: Dict[str, Any]) -> bool:
+    """Sender writes from the company's own alternate domain (swiggy.in for swiggy.com), and the web knows that domain."""
+    ed, off = email_domain(ent.contact_email), facts.get("official_domain") or ""
+    return (bool(ed and off) and is_alt_domain(ed, off) and int(facts.get("sender_domain_results") or 0) > 0
+            and not facts.get("sender_domain_reports"))
+
+
+def reconcile(ent: Entities, facts: Dict[str, Any], evidence: List[Evidence]) -> List[Evidence]:
+    """Re-weigh single-engine evidence in the light of the others. Every change is written into the evidence detail,
+    so the score ledger still explains each point."""
+    if established(facts):
+        n = facts.get("maps_reviews")
+        for ev in evidence:
+            if ev.id in ("google-1", "google_news-1") and ev.weight < 0:
+                ev.weight, ev.signal = 0, "neutral"
+                ev.detail += (f" Not counted against it: this business has {n:,} Google Maps reviews, and fraud mentions of a "
+                              "brand this size are mostly about scams that misuse its name. What matters is whether this "
+                              "message traces back to the company.")
+    if facts.get("email_matches_official"):
+        for ev in evidence:  # the company's own domain is judged by the company's reputation, not by a keyword search
+            if ev.id == "google-20" and ev.weight < 0:
+                ev.weight, ev.signal = 0, "neutral"
+    # A real brand is not evidence that a message is real. Brand-existence credit only counts when the message itself
+    # traces back to the company through its email domain; otherwise anyone could borrow "Amazon" and score well.
+    traced = facts.get("email_matches_official") or alt_domain_ok(ent, facts)
+    if ent.kind == "job_offer" and not traced:
+        for ev in evidence:
+            if ev.id in ("google_maps-1", "google-10") and ev.weight > 0:
+                ev.weight, ev.signal = 0, "neutral"
+                ev.detail += " The brand is real, but nothing in this message ties it to the brand, so this earns no trust."
+    if alt_domain_ok(ent, facts):
+        ed = email_domain(ent.contact_email)
+        evidence.append(Evidence(id="x-alt-domain", engine="google", title=f"{ed} looks like the company's own alternate domain",
+                                 detail=f"It shares the brand name with {facts['official_domain']} and Google knows it with no scam "
+                                        "reports. Confirm on the official careers page if unsure.", signal="neutral", weight=0))
+    return evidence
 
 
 def cross_check(ent: Entities, facts: Dict[str, Any], evidence: List[Evidence]) -> List[Contradiction]:
@@ -11,7 +57,14 @@ def cross_check(ent: Entities, facts: Dict[str, Any], evidence: List[Evidence]) 
     company_real = bool(facts.get("maps_found")) and bool(facts.get("official_domain"))
     ed = email_domain(ent.contact_email)
     off = facts.get("official_domain") or ""
-    off_mismatch = bool(ed) and (ed in FREE_EMAIL or (off and not (ed == off or ed.endswith("." + off))))
+    alt_ok = alt_domain_ok(ent, facts)
+    off_mismatch = bool(ed) and (ed in FREE_EMAIL or (bool(off) and not facts.get("email_matches_official") and not alt_ok))
+
+    if ed and ed not in FREE_EMAIL and off and not facts.get("email_matches_official") and not alt_ok:
+        out.append(Contradiction(
+            id="c-email-domain", title="Recruiter email is not on the official domain",
+            detail=f"The sender uses {ed} but the company's real site is {off}. Look-alike domains are a classic impersonation trick.",
+            evidence_ids=[i for i in ("google-10", "google-20") if i in ids], weight=-20))
 
     # Real company, but this specific offer does not trace back to it. Scammers often copy a genuine listing, so a
     # sender domain the web has never seen is enough even when the role itself is listed.

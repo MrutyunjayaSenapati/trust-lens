@@ -4,7 +4,7 @@ from typing import Any, AsyncIterator, Dict, List
 from . import collectors as C
 from .extraction import apply_resolved, extract, red_flags
 from .models import (Contradiction, Evidence, GraphEdge, GraphNode, InvestigateRequest, Result, Source)
-from .reasoner import confidence, cross_check, score, verdict
+from .reasoner import confidence, cross_check, reconcile, score, verdict
 from .serp import SerpClient
 from .synthesis import synthesize
 from .urlintel import find_url, is_link_only, resolve
@@ -134,6 +134,7 @@ async def run(req: InvestigateRequest) -> AsyncIterator[Dict[str, Any]]:
             yield {"type": "contradiction", "item": c.model_dump()}
 
     yield {"type": "stage", "stage": "reason", "message": "Cross-checking sources for contradictions…"}
+    evidence = reconcile(ent, ctx.facts, evidence)
     for c in cross_check(ent, ctx.facts, evidence):
         contradictions.append(c)
         yield {"type": "contradiction", "item": c.model_dump()}

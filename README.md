@@ -70,6 +70,13 @@ docker cp tl-backend:/app/app/benchmark/results.json backend/app/benchmark/resul
 ```
 
 - **Model fallback**: set `GEMINI_MODEL` and optionally `GEMINI_FALLBACK_MODELS` (comma separated). A 503/429/404 hops to the next model instead of failing.
+- **Optional: Gemini via Vertex AI** (local development, uses your Google Cloud project's quota instead of the API key's). Run `gcloud auth application-default login`, set `GEMINI_VERTEX_PROJECT` in `.env`, and in Docker mount the credentials:
+
+```bash
+docker run ... -v "%APPDATA%\gcloud:/gcloud:ro" -e GOOGLE_APPLICATION_CREDENTIALS=/gcloud/application_default_credentials.json trustlens-backend
+```
+
+  Vertex is tried first, then the API key. Without either, extraction falls back to deterministic rules.
 
 ## Notes
 - Responses are cached in SQLite, so re-running a case uses 0 credits.

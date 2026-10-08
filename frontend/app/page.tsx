@@ -131,7 +131,12 @@ export default function Home() {
         } else if (ev.type === "entities") setEntities(ev.entities);
         else if (ev.type === "evidence") setEvidence((l) => [...l, ev.item]);
         else if (ev.type === "contradiction") setContras((l) => [...l, ev.item]);
-        else if (ev.type === "result") setResult(ev.result);
+        else if (ev.type === "result") {
+          // the reasoner can re-weigh streamed evidence once every engine has answered, so the result is authoritative
+          setEvidence(ev.result.evidence);
+          setContras(ev.result.contradictions);
+          setResult(ev.result);
+        }
         else if (ev.type === "error") setError(ev.message);
       }
     } catch (e: any) {

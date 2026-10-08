@@ -52,7 +52,7 @@ def test_gemini_falls_back_to_next_model(monkeypatch, tmp_path):
     monkeypatch.setattr(gemini, "ATTEMPTS_PER_MODEL", 1)
     calls = []
 
-    async def fake_call(client, model, body, headers):
+    async def fake_call(client, url, model, body, headers):
         calls.append(model)
         return None if model == "m-primary" else {"ok": True}
 

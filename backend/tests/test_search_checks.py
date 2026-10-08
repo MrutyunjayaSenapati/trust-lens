@@ -11,6 +11,7 @@ from app.examples import EXAMPLES
 from app.extraction import UNREAL_PAY_RE
 from app.models import Evidence, InvestigateRequest
 from app.reasoner import score, verdict
+from app.util import clean_company, domain_contains_company, domain_label, is_alt_domain
 
 
 async def run_text(text):
@@ -29,6 +30,18 @@ def test_digits10():
     assert digits10("+91 91234 56780") == "9123456780"
     assert digits10("12345") == ""
     assert digits10(None) == ""
+
+
+def test_domain_rules():
+    assert clean_company("Wipro Limited") == "Wipro" and clean_company("Acme Pvt Ltd") == "Acme"
+    assert domain_contains_company("tcs.com", "Tata Consultancy Services")
+    assert domain_contains_company("zoho.com", "Zoho Corporation")
+    assert domain_label("careers.acme.co.in") == "acme"
+    # the company's own alternates pass ...
+    assert is_alt_domain("swiggy.in", "swiggy.com") and is_alt_domain("zohocorp.com", "zoho.com")
+    # ... look-alikes registered by impersonators do not
+    for fake in ("infosys-careers.co.in", "infosys-hrdesk.in", "tcs-careerhub.co.in", "infosyscareers.com"):
+        assert not is_alt_domain(fake, "infosys.com" if "infosys" in fake else "tcs.com"), fake
 
 
 def test_daily_task_pay_is_flagged():

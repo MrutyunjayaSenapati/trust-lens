@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional
 
 from .models import Contradiction, Entities, Evidence, Source
 from .serp import SerpClient
-from .util import (addr_overlap, domain_contains_company, domain_of, email_domain, name_match,
+from .util import (addr_overlap, clean_company, domain_contains_company, domain_of, email_domain, name_match,
                    FREE_EMAIL)
 
 SCAM_RE = re.compile(r"\b(scam|scams|scammer|fraud|fraudulent|fake|cheat|cheated|cheating|complaints?|blacklisted?|phishing|ponzi|duped|racket)\b", re.I)
@@ -109,8 +109,14 @@ async def maps(ctx: Ctx) -> Out:
     data = await ctx.serp.search("google_maps", q=q, type="search", hl="en", gl="in")
     places = data.get("local_results") or ([data["place_results"]] if data.get("place_results") else [])
     out.had_data = True
-    best = next((p for p in places if name_match(p.get("title", ""), e.company)), None)
+    for p in places:  # SerpApi sometimes returns type as a list
+        if isinstance(p.get("type"), list):
+            p["type"] = ", ".join(map(str, p["type"]))
+    matching = [p for p in places if name_match(p.get("title", ""), e.company)]
+    best = matching[0] if matching else None
     ctx.facts["maps_found"] = bool(best)
+    # Total reviews across the company's own listings: thousands means an established, widely visited business.
+    ctx.facts["maps_reviews"] = sum(int(p.get("reviews") or 0) for p in matching)
     if not best:
         out.evidence.append(_ev("google_maps", 1, "No Google Maps listing for this company",
                                 f"Searched Maps for “{q}” and found no matching business. Real companies with offices are almost always listed.",
@@ -157,9 +163,10 @@ async def jobs(ctx: Ctx) -> Out:
                                 f"Found {len(matches)} public listing(s) by this company ({j.get('via', '')}, {j.get('location', '')}).",
                                 "positive", 14))
     else:
-        out.evidence.append(_ev("google_jobs", 1, "No public job listing for this company",
-                                f"Google Jobs shows no listing for “{q}”. Small firms and referrals can be unlisted, so this is a moderate signal.",
-                                "negative", -10))
+        # Google Jobs is sparse in India (even large employers often return nothing), so absence is not held against anyone.
+        out.evidence.append(_ev("google_jobs", 1, "No public job listing found",
+                                f"Google Jobs shows no listing for “{q}”. Listings are patchy in India, so this neither helps nor hurts.",
+                                "neutral", 0))
     return out
 
 
@@ -170,7 +177,7 @@ async def official_presence(ctx: Ctx) -> Out:
     e = ctx.ent
     if not e.company:
         return out
-    data = await ctx.serp.search("google", q=f"{e.company} official website", gl="in", hl="en", num=8)
+    data = await ctx.serp.search("google", q=f"{clean_company(e.company)} official website", gl="in", hl="en", num=8)
     res = data.get("organic_results", [])
     out.had_data = bool(res)
     # The official site is the company-named domain that shows up most often (ties: highest ranked). Taking the first
@@ -197,13 +204,10 @@ async def official_presence(ctx: Ctx) -> Out:
             out.evidence.append(_ev("google", n + 1, f"Contact uses a free email ({ed})",
                                     "Companies hire from their own domain; free webmail for an “HR” is a common scam trait.", "negative", -15))
         elif official and any(ed == d or ed.endswith("." + d) or d.endswith("." + ed) for d in ctx.facts["official_domains"]):
+            ctx.facts["email_matches_official"] = True
             out.evidence.append(_ev("google", n + 1, "Email domain matches the official site",
                                     f"{ed} is the company's own domain.", "positive", 15))
-        elif official:
-            out.contradictions.append(Contradiction(
-                id="c-email-domain", title="Recruiter email is not on the official domain",
-                detail=f"The sender uses {ed} but the company's real site is {official}. Look-alike domains are a classic impersonation trick.",
-                evidence_ids=[f"google-{n}"], weight=-20))
+        # A mismatch is judged in reasoner.cross_check, once the sender-domain search has also answered.
     return out
 
 
@@ -218,8 +222,10 @@ async def sender_domain(ctx: Ctx) -> Out:
     res = data.get("organic_results", [])
     out.had_data = True
     ctx.facts["sender_domain_results"] = len(res)
+    # only pages that name the domain itself next to scam wording count; "Postman API ... fake data" does not
     reports = [(r.get("title", ""), r.get("link", "")) for r in res
-               if SCAM_RE.search(f"{r.get('title', '')} {r.get('snippet', '')}")]
+               if ed in f"{r.get('title', '')} {r.get('snippet', '')}".lower() and SCAM_RE.search(f"{r.get('title', '')} {r.get('snippet', '')}")]
+    ctx.facts["sender_domain_reports"] = len(reports)
     n = 20
     if not res:
         ctx.facts["sender_domain_unknown"] = True

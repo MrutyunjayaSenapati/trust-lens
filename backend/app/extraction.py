@@ -112,7 +112,10 @@ def red_flags(text: str, ent: Entities) -> list:
         n += 1
         out.append(Evidence(id=f"text-{n}", engine="text-analysis", title=title, detail=detail, signal="negative", weight=weight))
 
-    if ent.payment_requested or FEE_RE.search(text):
+    # For a deal, paying is the point of buying; only advance payment to a person (UPI, "pay to confirm") is a red flag,
+    # so trust the regex there rather than the model's broader "asks for money".
+    asks_money = FEE_RE.search(text) if ent.kind == "deal" else (ent.payment_requested or FEE_RE.search(text))
+    if asks_money:
         add("Asks you to pay money", "Genuine employers and sellers do not charge candidates a registration, training or security fee.", -30)
     if CHAT_ONLY_RE.search(text):
         add("Moves the conversation to WhatsApp/Telegram", "Scam offers push you to private chat apps where there is no paper trail.", -8)
