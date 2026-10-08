@@ -1,5 +1,9 @@
 """Labelled messages for the accuracy benchmark. 'scam' cases should be flagged (suspicious / likely scam);
-'genuine' cases should NOT be flagged. Names of genuine employers are used only to test the pipeline."""
+'genuine' cases should NOT be flagged. Names of genuine employers are used only to test the pipeline.
+
+CASES is the development set: the scoring rules were tuned while looking at it, so its accuracy is optimistic.
+HOLDOUT was written on Oct 8, 2026 after the rules were frozen and is never tuned against. Scam texts follow
+patterns from 2026 Indian police and news reports; genuine ones are real postings or real company domains."""
 CASES = [
     # ---- scams ----
     {"id": "s1", "label": "Fake internship, fee on UPI", "expected": "scam",
@@ -51,4 +55,31 @@ CASES = [
      "text": "Samsung Galaxy M35 5G 6GB 128GB available at ₹17,499 on Flipkart with bank offers. Cash on delivery available."},
     {"id": "g7", "label": "Redmi at near-MRP", "expected": "genuine",
      "text": "Redmi Note 13 5G 8GB 128GB now ₹15,999 (MRP ₹18,999) on mi.com during the sale. Delivery in 3-5 days."},
+]
+
+HOLDOUT = [
+    # ---- scams (patterns from 2026 police / news reports) ----
+    {"id": "h-s1", "label": "Food-review task job on WhatsApp", "expected": "scam",
+     "text": "Hello, I am Neha from a digital marketing agency. We have part-time work from your phone: post food reviews for restaurants and get paid ₹5,000 to ₹8,650 per day. Tasks are given on Telegram. Reply 'YES' to start today."},
+    {"id": "h-s2", "label": "'HR executive' asks refundable registration fee", "expected": "scam",
+     "text": "This is Rohit from HR, Tech Mahindra. You have been selected for Customer Support Executive in Noida. Please pay ₹2,500 registration and account opening charges, fully refunded after joining. Send the screenshot to techmahindra.hr.noida@gmail.com"},
+    {"id": "h-s3", "label": "Deloitte offer letter from look-alike domain, no fee", "expected": "scam",
+     "text": "Dear Applicant, please find attached your offer letter for Analyst at Deloitte, Hyderabad. Kindly sign it and share your Aadhaar, PAN and last three months' bank statements to complete background verification. Regards, Talent Team, careers@deloitte-india-hr.com"},
+    {"id": "h-s4", "label": "Fake placement agency with processing fee", "expected": "scam",
+     "text": "Velorix Staffing Solutions, Bhubaneswar: 100% guaranteed job in Amazon warehouse, salary ₹22,000. No interview. Pay ₹3,500 processing fee on PhonePe to book your joining date. Reply on WhatsApp to this number."},
+    {"id": "h-s5", "label": "Wipro interview from look-alike domain, no fee", "expected": "scam",
+     "text": "Greetings from Wipro Limited. Your profile is shortlisted for Associate Engineer, Bengaluru. Please join the virtual HR discussion tomorrow at 10 AM and confirm by replying to hiring@wipro-talentdesk.in"},
+    # ---- genuine ----
+    {"id": "h-g1", "label": "Real Accenture posting (LinkedIn link)", "expected": "genuine",
+     "text": "https://www.linkedin.com/jobs/view/4474509677/"},
+    {"id": "h-g2", "label": "Real Wahed posting (Lever link)", "expected": "genuine",
+     "text": "https://jobs.lever.co/wahed.com/479cd76f-d0b5-47e5-86f0-7f8f18605bf1?lever-source=Indeed"},
+    {"id": "h-g3", "label": "Groww recruiter email", "expected": "genuine",
+     "text": "Hi, this is Aditi from the Groww talent acquisition team. We'd like to move your application for SDE-2 (Backend), Bengaluru to the technical round. Please share your availability for next week. aditi.r@groww.in"},
+    {"id": "h-g4", "label": "Meesho campus interview", "expected": "genuine",
+     "text": "Hello from Meesho! You have been shortlisted for the Software Development Engineer role in Bengaluru. The online coding assessment link will be sent from campus@meesho.com within two days."},
+    {"id": "h-g5", "label": "CRED hiring manager reply", "expected": "genuine",
+     "text": "Thanks for applying to CRED for the Android Engineer role in Bengaluru. Our hiring manager would like a 30-minute intro call this Friday. Please reply with a convenient time. careers@cred.club"},
+    {"id": "h-g6", "label": "Juspay assignment", "expected": "genuine",
+     "text": "Juspay Technologies: thank you for your interest in the Product Engineer role, Bengaluru. Please complete the attached take-home assignment within 5 days and reply to talent@juspay.in"},
 ]

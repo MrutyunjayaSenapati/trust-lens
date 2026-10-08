@@ -11,7 +11,7 @@ from pathlib import Path
 from ..models import Evidence, InvestigateRequest
 from ..pipeline import run
 from ..reasoner import score, verdict
-from .cases import CASES
+from .cases import CASES, HOLDOUT
 
 OUT = Path(__file__).with_name("results.json")
 FLAGGED = {"suspicious", "likely_scam"}
@@ -40,18 +40,11 @@ async def one(case: dict) -> dict:
             "live_calls": res["live_calls"]}
 
 
-async def main() -> None:
-    rows = []
-    for c in CASES:
-        rows.append(await one(c))
-        r = rows[-1]
-        print(r.get("id"), r.get("verdict"), r.get("score"), r.get("correct"), "| text only:", r.get("text_verdict"),
-              r.get("text_correct"), "| live calls:", r.get("live_calls"), flush=True)
+def summarize(rows: list) -> dict:
     done = [r for r in rows if "correct" in r]
     scams = [r for r in done if r["expected"] == "scam"]
     good = [r for r in done if r["expected"] == "genuine"]
-    summary = {
-        "generated_at": time.strftime("%Y-%m-%d"),
+    return {
         "total": len(done), "correct": sum(r["correct"] for r in done),
         "scams_caught": sum(r["correct"] for r in scams), "scams_total": len(scams),
         "genuine_cleared": sum(r["correct"] for r in good), "genuine_total": len(good),
@@ -59,8 +52,22 @@ async def main() -> None:
         "text_scams_caught": sum(r["text_correct"] for r in scams),
         "text_genuine_cleared": sum(r["text_correct"] for r in good),
     }
-    OUT.write_text(json.dumps({"summary": summary, "rows": rows}, ensure_ascii=False, indent=2), encoding="utf-8")
-    print(summary)
+
+
+async def main() -> None:
+    rows = []
+    for split, cases in (("dev", CASES), ("holdout", HOLDOUT)):
+        for c in cases:
+            r = {**await one(c), "split": split}
+            rows.append(r)
+            print(split, r.get("id"), r.get("verdict"), r.get("score"), r.get("correct"), "| text only:", r.get("text_verdict"),
+                  r.get("text_correct"), "| live calls:", r.get("live_calls"), flush=True)
+    # "summary" stays the development set for the page; "holdout" is the honest number.
+    summary = {"generated_at": time.strftime("%Y-%m-%d"), **summarize([r for r in rows if r["split"] == "dev"])}
+    holdout = summarize([r for r in rows if r["split"] == "holdout"])
+    OUT.write_text(json.dumps({"summary": summary, "holdout": holdout, "rows": rows}, ensure_ascii=False, indent=2), encoding="utf-8")
+    print("dev", summary)
+    print("holdout", holdout)
 
 
 if __name__ == "__main__":
