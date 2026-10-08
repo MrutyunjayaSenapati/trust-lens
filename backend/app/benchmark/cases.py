@@ -1,0 +1,36 @@
+"""Labelled messages for the accuracy benchmark. 'scam' cases should be flagged (suspicious / likely scam);
+'genuine' cases should NOT be flagged. Names of genuine employers are used only to test the pipeline."""
+CASES = [
+    # ---- scams ----
+    {"id": "s1", "label": "Fake internship, fee on UPI", "expected": "scam",
+     "text": "Congratulations! You are selected for Software Development Intern at Zentrix Global Solutions Pvt Ltd, Bengaluru. Stipend ₹25,000/month, no interview needed. Pay a refundable registration fee of ₹1,999 via UPI within 24 hours. Contact HR zentrix.hr2024@gmail.com"},
+    {"id": "s2", "label": "Infosys name, off-domain recruiter", "expected": "scam",
+     "text": "Dear candidate, we are pleased to offer you Systems Engineer Trainee at Infosys Limited, Bengaluru. Send a security deposit of ₹4,500 to proceed. Contact: hr.recruitment@infosys-careers.co.in"},
+    {"id": "s3", "label": "iPhone at ₹9,999", "expected": "scam",
+     "text": "MEGA SALE! iPhone 15 128GB only ₹9,999 (MRP ₹1,29,900). Limited stock, only 3 left! Pay via UPI to confirm, delivery in 2 days. WhatsApp us: +91 9123456780"},
+    {"id": "s4", "label": "Like-videos job, Telegram, daily pay", "expected": "scam",
+     "text": "Part time work from home! Earn ₹5000 per day just liking videos. No experience, no interview. Join our Telegram group, pay ₹500 registration to activate your account. Limited seats, hurry!"},
+    {"id": "s5", "label": "TCS offer from Gmail with deposit", "expected": "scam",
+     "text": "Offer letter: Assistant System Engineer at Tata Consultancy Services, Pune. Selected directly without exam. Pay ₹3,000 onboarding fee to tcs.hrdept.offers@gmail.com within 24 hours to confirm joining."},
+    {"id": "s6", "label": "Wipro recruiter asks for kit fee", "expected": "scam",
+     "text": "Hello, Wipro Limited is hiring freshers for Project Engineer in Hyderabad. 100% placement guarantee. Pay training kit charges ₹2,500 via PhonePe to reserve your seat. Contact wipro.jobs.india@outlook.com"},
+    {"id": "s7", "label": "Smart TV at 90% off", "expected": "scam",
+     "text": "Diwali dhamaka! Samsung 55 inch 4K Smart TV only ₹4,999 (MRP ₹79,990). Only 2 pieces left. Pay advance on UPI to book. WhatsApp +91 9000011122"},
+    {"id": "s8", "label": "Lottery / KBC style prize", "expected": "scam",
+     "text": "Congratulations! You have won ₹25,00,000 in the KBC lucky draw. To claim your prize pay processing fee ₹4,999 via Google Pay immediately. Contact on WhatsApp only. Offer expires within 2 hours."},
+    # ---- genuine ----
+    {"id": "g1", "label": "Infosys careers page announcement", "expected": "genuine",
+     "text": "Infosys is hiring Systems Engineers in Bengaluru. Apply on the official careers page infosys.com/careers. Interviews are conducted online by invitation from careers@infosys.com. No fee is charged at any stage."},
+    {"id": "g2", "label": "TCS NQT notification", "expected": "genuine",
+     "text": "Tata Consultancy Services invites final-year students to register for the TCS NQT hiring test at nextstep.tcs.com. Registration details and the test schedule are on the official TCS website."},
+    {"id": "g3", "label": "Zoho developer opening", "expected": "genuine",
+     "text": "Zoho Corporation has openings for Member Technical Staff in Chennai. Apply through zoho.com/careers. Selection is via online tests and interviews. Questions? careers@zohocorp.com."},
+    {"id": "g4", "label": "Razorpay backend intern", "expected": "genuine",
+     "text": "Razorpay is hiring Backend Engineering Interns in Bengaluru, stipend ₹40,000/month. Apply at razorpay.com/jobs. Interview process: coding round and two technical interviews. No fees."},
+    {"id": "g5", "label": "Wipro careers drive", "expected": "genuine",
+     "text": "Wipro Limited is hiring Project Engineers in Hyderabad. Apply at careers.wipro.com and attend the online assessment. Official communication will come from wipro.com email addresses only."},
+    {"id": "g6", "label": "Flipkart phone at market price", "expected": "genuine",
+     "text": "Samsung Galaxy M35 5G 6GB 128GB available at ₹17,499 on Flipkart with bank offers. Cash on delivery available."},
+    {"id": "g7", "label": "Redmi at near-MRP", "expected": "genuine",
+     "text": "Redmi Note 13 5G 8GB 128GB now ₹15,999 (MRP ₹18,999) on mi.com during the sale. Delivery in 3-5 days."},
+]
